@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Article Inbox</p>
+        <h1>文章列表</h1>
+        <p class="muted">这里先展示已经成功抓进数据库的文章。</p>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-toolbar">
+        <h2>最新文章</h2>
+        <div class="code-block">
+            <span>POST /admin/api/jobs/crawl/run</span>
+        </div>
+    </div>
+    {% if articles %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>标题</th>
+                    <th>来源</th>
+                    <th>语言</th>
+                    <th>状态</th>
+                    <th>已提取正文</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for article in articles %}
+                <tr>
+                    <td>
+                        <a href="{{ article.canonical_url }}" target="_blank" rel="noreferrer">
+                            {{ article.title }}
+                        </a>
+                    </td>
+                    <td>{{ article.source.name if article.source else "-" }}</td>
+                    <td>{{ article.language or "-" }}</td>
+                    <td>{{ article.status }}</td>
+                    <td>{{ "是" if article.content and article.content.clean_content else "否" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty-state">当前还没有文章，先跑一次抓取任务。</p>
+    {% endif %}
+</section>
+{% endblock %}
+

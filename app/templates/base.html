@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title or "技术论坛日报" }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <a class="brand" href="/admin">技术论坛日报</a>
+            <nav class="nav">
+                <a href="/admin">仪表盘</a>
+                <a href="/admin/sources">内容源管理</a>
+                <a href="/admin/articles">文章列表</a>
+                <a href="/admin/models">模型配置</a>
+                <a href="/admin/reports">日报管理</a>
+                <a href="/admin/jobs">任务日志</a>
+                <a href="/admin/settings">系统设置</a>
+            </nav>
+        </aside>
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

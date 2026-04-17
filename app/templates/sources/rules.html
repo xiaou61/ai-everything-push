@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Source Rules</p>
+        <h1>{{ source.name }} 抓取规则</h1>
+        <p class="muted">网页抓取时可以在这里配置列表选择器、正文选择器和请求头。</p>
+    </div>
+</section>
+
+<section class="panel">
+    <form method="post" action="/admin/sources/{{ source.id }}/rules/save" class="form-grid">
+        <label class="form-field">
+            <span>列表项选择器</span>
+            <input type="text" name="list_item_selector" value="{{ rule_form.list_item_selector }}" placeholder="article, .post-item">
+        </label>
+
+        <label class="form-field">
+            <span>链接选择器</span>
+            <input type="text" name="link_selector" value="{{ rule_form.link_selector }}" placeholder="a[href]">
+        </label>
+
+        <label class="form-field">
+            <span>标题选择器</span>
+            <input type="text" name="title_selector" value="{{ rule_form.title_selector }}">
+        </label>
+
+        <label class="form-field">
+            <span>发布时间选择器</span>
+            <input type="text" name="published_at_selector" value="{{ rule_form.published_at_selector }}">
+        </label>
+
+        <label class="form-field">
+            <span>作者选择器</span>
+            <input type="text" name="author_selector" value="{{ rule_form.author_selector }}">
+        </label>
+
+        <label class="form-field">
+            <span>正文选择器</span>
+            <input type="text" name="content_selector" value="{{ rule_form.content_selector }}" placeholder="article, .post-content">
+        </label>
+
+        <label class="form-field">
+            <span>预览地址</span>
+            <input type="url" name="preview_url" value="{{ preview_url }}" placeholder="留空时默认使用列表页或首篇文章">
+        </label>
+
+        <label class="form-field form-field-wide">
+            <span>移除节点选择器</span>
+            <textarea name="remove_selectors" rows="4" placeholder=".share, .ad, script">{{ rule_form.remove_selectors }}</textarea>
+        </label>
+
+        <label class="form-field form-field-wide">
+            <span>请求头 JSON</span>
+            <textarea name="request_headers_json" rows="6" placeholder='{"User-Agent":"Mozilla/5.0"}'>{{ rule_form.request_headers_json }}</textarea>
+        </label>
+
+        <div class="form-actions">
+            <button type="submit">保存规则</button>
+            <button type="submit" formaction="/admin/sources/{{ source.id }}/rules/preview" name="preview_mode" value="list" class="secondary-button">预览列表</button>
+            <button type="submit" formaction="/admin/sources/{{ source.id }}/rules/preview" name="preview_mode" value="article" class="secondary-button">预览正文</button>
+        </div>
+    </form>
+</section>
+
+{% if preview_error %}
+<section class="panel">
+    <h2>预览结果</h2>
+    <p class="empty-state">{{ preview_error }}</p>
+</section>
+{% endif %}
+
+{% if preview %}
+<section class="panel">
+    <div class="panel-toolbar">
+        <h2>预览结果</h2>
+        <span class="muted">{{ "列表预览" if preview.mode == "list" else "正文预览" }}</span>
+    </div>
+    <p class="muted">请求地址：{{ preview.request_url }}</p>
+
+    {% if preview.mode == "list" %}
+        {% if preview.items %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>标题</th>
+                        <th>链接</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in preview.items %}
+                    <tr>
+                        <td>{{ item.title }}</td>
+                        <td><a href="{{ item.link }}" target="_blank" rel="noreferrer">{{ item.link }}</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="empty-state">没有提取到任何文章链接。</p>
+        {% endif %}
+    {% else %}
+        <div class="preview-meta">
+            <span>文章地址：{{ preview.article_url or "-" }}</span>
+            <span>提取长度：{{ preview.extracted_length }}</span>
+        </div>
+        <pre class="preview-text">{{ preview.extracted_text or "没有提取到正文内容。" }}</pre>
+    {% endif %}
+</section>
+{% endif %}
+{% endblock %}

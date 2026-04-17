@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Daily Reports</p>
+        <h1>日报管理</h1>
+        <p class="muted">生成后的日报会显示在这里，同时可以访问公开页面。</p>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-toolbar">
+        <h2>日报列表</h2>
+        <div class="code-block">
+            <span>POST /admin/api/jobs/report/run</span>
+        </div>
+    </div>
+    {% if reports %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>标题</th>
+                    <th>文章数</th>
+                    <th>飞书推送</th>
+                    <th>访问</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in reports %}
+                <tr>
+                    <td>{{ report.report_date }}</td>
+                    <td>{{ report.title }}</td>
+                    <td>{{ report.article_count }}</td>
+                    <td>{{ "是" if report.feishu_pushed else "否" }}</td>
+                    <td><a href="/daily/{{ report.report_date }}">打开日报</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty-state">还没有日报，先跑文章处理和日报生成任务。</p>
+    {% endif %}
+</section>
+{% endblock %}
+

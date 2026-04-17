@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Source Center</p>
+        <h1>内容源管理</h1>
+        <p class="muted">先支持 RSS 和网页抓取两种来源。</p>
+    </div>
+    <div class="page-actions">
+        <a class="button-link" href="/admin/sources/new">新增内容源</a>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-toolbar">
+        <h2>已接入内容源</h2>
+    </div>
+    {% if sources %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>名称</th>
+                    <th>类型</th>
+                    <th>分类</th>
+                    <th>语言提示</th>
+                    <th>启用</th>
+                    <th>规则</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for source in sources %}
+                <tr>
+                    <td>{{ source.name }}</td>
+                    <td>{{ source.source_type }}</td>
+                    <td>{{ source.category or "-" }}</td>
+                    <td>{{ source.language_hint or "-" }}</td>
+                    <td>{{ "是" if source.enabled else "否" }}</td>
+                    <td>
+                        <a href="/admin/sources/{{ source.id }}/rules">
+                            {{ "已配置" if source.rules else "去配置" }}
+                        </a>
+                    </td>
+                    <td class="actions-cell">
+                        <a href="/admin/sources/{{ source.id }}/edit">编辑</a>
+                        <form method="post" action="/admin/sources/{{ source.id }}/toggle" class="inline-form">
+                            <button type="submit">{{ "停用" if source.enabled else "启用" }}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty-state">当前还没有内容源，先点上方按钮添加一个。</p>
+    {% endif %}
+</section>
+{% endblock %}
