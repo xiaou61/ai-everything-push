@@ -51,6 +51,7 @@ def crawl_enabled_sources(session: Session) -> CrawlSummary:
     errors: list[str] = []
 
     for source in sources:
+        source_processed_count = 0
         try:
             entries = _load_entries(source)
             for entry in entries:
@@ -76,12 +77,25 @@ def crawl_enabled_sources(session: Session) -> CrawlSummary:
                     ),
                 )
                 processed_count += 1
+                source_processed_count += 1
                 if created:
                     created_count += 1
                 else:
                     updated_count += 1
+            source.last_crawled_at = datetime.utcnow()
+            source.last_crawl_status = "success"
+            source.consecutive_failures = 0
+            source.last_crawl_error = None
+            source.last_crawl_processed_count = source_processed_count
+            session.add(source)
         except Exception as exc:  # noqa: BLE001
             errors.append(f"{source.name}: {exc}")
+            source.last_crawled_at = datetime.utcnow()
+            source.last_crawl_status = "partial_success" if source_processed_count > 0 else "failed"
+            source.consecutive_failures += 1
+            source.last_crawl_error = str(exc)
+            source.last_crawl_processed_count = source_processed_count
+            session.add(source)
 
     job.status = "success" if not errors else "partial_success"
     job.finished_at = datetime.utcnow()

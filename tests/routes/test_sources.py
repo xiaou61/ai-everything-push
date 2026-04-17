@@ -18,6 +18,9 @@ def test_create_source(client):
     data = response.json()
     assert data["name"] == "美团技术团队"
     assert data["source_type"] == "web"
+    assert data["consecutive_failures"] == 0
+    assert data["last_crawl_status"] is None
+    assert data["last_crawl_error"] is None
 
 
 def test_toggle_source(client):
@@ -38,4 +41,3 @@ def test_toggle_source(client):
     response = client.post(f"/admin/api/sources/{source_id}/toggle")
     assert response.status_code == 200
     assert response.json()["enabled"] is False
-

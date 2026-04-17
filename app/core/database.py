@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
+from app.core.schema_upgrade import apply_lightweight_schema_upgrades
 from app.db.base import Base
 
 
@@ -38,4 +39,4 @@ def init_db() -> None:
     import app.db.models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
-
+    apply_lightweight_schema_upgrades(engine)

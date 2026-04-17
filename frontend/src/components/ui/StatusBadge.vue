@@ -21,7 +21,7 @@ const badgeTone = computed(() => {
     return 'danger'
   }
 
-  if (['draft', 'pending', 'manual'].includes(text)) {
+  if (['draft', 'pending', 'manual', 'partial_success'].includes(text)) {
     return 'warning'
   }
 

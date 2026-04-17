@@ -47,6 +47,11 @@ export interface Source {
   enabled: boolean
   include_in_daily: boolean
   crawl_interval_minutes: number
+  last_crawled_at: string | null
+  last_crawl_status: 'success' | 'failed' | 'partial_success' | null
+  consecutive_failures: number
+  last_crawl_error: string | null
+  last_crawl_processed_count: number
 }
 
 export interface SourcePayload {

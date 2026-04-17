@@ -6,7 +6,7 @@ import EmptyState from '../components/ui/EmptyState.vue'
 import PanelCard from '../components/ui/PanelCard.vue'
 import StatusBadge from '../components/ui/StatusBadge.vue'
 import { api } from '../lib/api'
-import { formatBoolean } from '../lib/format'
+import { formatBoolean, formatDateTime } from '../lib/format'
 import { useUiStore } from '../stores/ui'
 import type { Source } from '../types/admin'
 
@@ -36,7 +36,20 @@ const sourceSummary = computed(() => ({
   total: sources.value.length,
   enabled: sources.value.filter((item) => item.enabled).length,
   included: sources.value.filter((item) => item.include_in_daily).length,
+  unhealthy: sources.value.filter((item) => (item.consecutive_failures || 0) > 0).length,
 }))
+
+function getHealthLabel(source: Source): string {
+  if (!source.last_crawl_status) {
+    return 'idle'
+  }
+
+  if (source.last_crawl_status === 'success' && source.consecutive_failures === 0) {
+    return 'success'
+  }
+
+  return source.last_crawl_status
+}
 
 async function loadSources() {
   loading.value = true
@@ -87,6 +100,9 @@ onMounted(loadSources)
       <PanelCard eyebrow="日报收录" :title="String(sourceSummary.included)">
         <p class="muted-copy">处理后允许进入日报候选池。</p>
       </PanelCard>
+      <PanelCard eyebrow="异常来源" :title="String(sourceSummary.unhealthy)">
+        <p class="muted-copy">连续失败大于 0 的来源建议优先排查。</p>
+      </PanelCard>
     </div>
 
     <PanelCard eyebrow="Filtering" title="来源列表">
@@ -107,6 +123,8 @@ onMounted(loadSources)
                 <th>类型</th>
                 <th>语言</th>
                 <th>分类</th>
+                <th>抓取健康</th>
+                <th>最近抓取</th>
                 <th>日报</th>
                 <th>状态</th>
                 <th>操作</th>
@@ -123,6 +141,16 @@ onMounted(loadSources)
                 <td>{{ item.source_type }}</td>
                 <td>{{ item.language_hint || '-' }}</td>
                 <td>{{ item.category || '-' }}</td>
+                <td>
+                  <div class="table-primary">
+                    <StatusBadge :label="getHealthLabel(item)" />
+                    <span class="table-subcopy">
+                      {{ item.consecutive_failures > 0 ? `连续失败 ${item.consecutive_failures} 次` : `最近处理 ${item.last_crawl_processed_count} 条` }}
+                    </span>
+                    <span v-if="item.last_crawl_error" class="table-error">{{ item.last_crawl_error }}</span>
+                  </div>
+                </td>
+                <td>{{ formatDateTime(item.last_crawled_at) }}</td>
                 <td>{{ formatBoolean(item.include_in_daily) }}</td>
                 <td>
                   <StatusBadge :label="item.enabled ? 'enabled' : 'disabled'" />

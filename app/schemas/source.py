@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
@@ -39,5 +40,10 @@ class SourceUpdate(BaseModel):
 
 class SourceRead(SourceBase):
     id: int
+    last_crawled_at: Optional[datetime] = None
+    last_crawl_status: Optional[str] = None
+    consecutive_failures: int = 0
+    last_crawl_error: Optional[str] = None
+    last_crawl_processed_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)

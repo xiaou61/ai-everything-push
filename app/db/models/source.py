@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -23,6 +24,11 @@ class Source(TimestampMixin, Base):
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     include_in_daily: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     crawl_interval_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=60, server_default="60")
+    last_crawled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_crawl_status: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    consecutive_failures: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    last_crawl_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    last_crawl_processed_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
     rules: Mapped[List["SourceRule"]] = relationship(
         back_populates="source",
@@ -49,4 +55,3 @@ class SourceRule(TimestampMixin, Base):
 
 
 from app.db.models.article import Article  # noqa: E402
-
