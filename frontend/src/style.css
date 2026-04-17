@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap');
+
+:root {
+  color-scheme: dark;
+  font-family: 'Noto Sans SC', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #eef4ff;
+  background:
+    radial-gradient(circle at top left, rgba(65, 218, 255, 0.12), transparent 30%),
+    radial-gradient(circle at top right, rgba(255, 159, 67, 0.14), transparent 32%),
+    linear-gradient(180deg, #08111f 0%, #0b1d33 100%);
+  --color-background: #08111f;
+  --color-surface: #0d2139;
+  --color-text: #eef4ff;
+  --color-muted: #96adc6;
+  --color-accent: #ff9f43;
+  --color-accent-secondary: #41daff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(circle at center, black 45%, transparent 95%);
+}
+
+a,
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: 'Space Grotesk', 'Noto Sans SC', sans-serif;
+  letter-spacing: -0.03em;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1.2rem;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-secondary));
+  color: #06223d;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgba(255, 159, 67, 0.26);
+}
+
+.ghost-button {
+  padding: 0.8rem 1rem;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
+}
+
+.status-banner {
+  margin: 0;
+  padding: 1rem 1.15rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text);
+}
+
+.status-error {
+  background: rgba(255, 99, 132, 0.14);
+  color: #ffc9d6;
+}

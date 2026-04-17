@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: forum_digest
+      MYSQL_USER: forum_digest
+      MYSQL_PASSWORD: forum_digest
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  app:
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: forum_digest
+      MYSQL_PASSWORD: forum_digest
+      MYSQL_DATABASE: forum_digest
+      CORS_ORIGINS: http://localhost:8000,http://127.0.0.1:8000,http://localhost:5173
+      DAILY_DIGEST_SITE_BASE_URL: http://localhost:8000
+      DAILY_DIGEST_CRON: "0 18 * * *"
+      FEISHU_WEBHOOK_URL: ""
+      OPENAI_API_KEY: ""
+      OPENAI_BASE_URL: "https://api.openai.com/v1"
+      OPENAI_MODEL: ""
+    ports:
+      - "8000:8000"
+
+volumes:
+  mysql_data:
+
