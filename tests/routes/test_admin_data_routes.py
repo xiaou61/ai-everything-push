@@ -63,10 +63,11 @@ def test_dashboard_data_api_returns_source_alerts(client):
     try:
         source = session.get(Source, source_id)
         assert source is not None
-        source.last_crawled_at = datetime(2026, 4, 17, 10, 0, 0)
+        now = datetime.utcnow()
+        source.last_crawled_at = now
         source.last_crawl_status = "failed"
         source.consecutive_failures = 1
-        source.last_failure_at = datetime(2026, 4, 17, 10, 0, 0)
+        source.last_failure_at = now
         source.last_retry_attempts = 1
         source.last_crawl_error = "请求超时"
         session.add(source)

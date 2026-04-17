@@ -20,3 +20,4 @@ docs/previews/*
 !docs/previews/.gitkeep
 *.db
 *.sqlite3
+.backend*.log

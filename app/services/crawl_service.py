@@ -49,6 +49,7 @@ def crawl_enabled_sources(session: Session, trigger_type: str = "manual") -> Cra
 
     try:
         for source in sources:
+            source_name = source.name
             # 冷却中的来源先跳过，避免在短时间内重复打失败源站。
             if should_skip_source_crawl(source):
                 skipped_count += 1
@@ -92,7 +93,8 @@ def crawl_enabled_sources(session: Session, trigger_type: str = "manual") -> Cra
                 )
                 session.add(source)
             except Exception as exc:  # noqa: BLE001
-                errors.append(f"{source.name}: {exc}")
+                session.rollback()
+                errors.append(f"{source_name}: {exc}")
                 apply_source_crawl_failure(
                     source,
                     exc,
