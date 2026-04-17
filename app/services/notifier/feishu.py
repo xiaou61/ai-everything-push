@@ -8,31 +8,25 @@ import httpx
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.db.models.job_run import JobRun
 from app.db.models.report import DailyReport
+from app.services.job_service import finish_job_run, start_job_run
 from app.services.report_service import build_report_sections, get_report_by_date
 from app.services.system_setting_service import get_setting_value
 
 
-def push_report_to_feishu(session: Session, report_date) -> dict:
+def push_report_to_feishu(session: Session, report_date, trigger_type: str = "manual") -> dict:
     settings = get_settings()
     report = get_report_by_date(session, report_date)
     if report is None:
         raise ValueError("日报不存在")
 
-    job = JobRun(
-        job_name="push_report_job",
-        trigger_type="manual",
-        status="running",
-        started_at=datetime.utcnow(),
-        processed_count=0,
-    )
-    session.add(job)
-    session.commit()
-    session.refresh(job)
+    execution = start_job_run(session, "push_report_job", trigger_type=trigger_type)
+
+    if trigger_type == "scheduler" and report.feishu_pushed:
+        return _finish_job(session, execution, status="skipped", message="日报已推送，跳过重复调度")
 
     if not settings.feishu_webhook_url:
-        return _finish_job(session, job, status="skipped", message="未配置 FEISHU_WEBHOOK_URL")
+        return _finish_job(session, execution, status="skipped", message="未配置 FEISHU_WEBHOOK_URL")
 
     sections = build_report_sections(report)
     highlights = []
@@ -70,7 +64,7 @@ def push_report_to_feishu(session: Session, report_date) -> dict:
     try:
         response_data = send_feishu_payload(settings.feishu_webhook_url, payload)
     except Exception as exc:  # noqa: BLE001
-        return _finish_job(session, job, status="failed", message="飞书推送失败", detail=str(exc))
+        return _finish_job(session, execution, status="failed", message="飞书推送失败", detail=str(exc))
 
     report.feishu_pushed = True
     session.add(report)
@@ -81,7 +75,7 @@ def push_report_to_feishu(session: Session, report_date) -> dict:
     }
     return _finish_job(
         session,
-        job,
+        execution,
         status="success",
         message="推送成功",
         processed_count=1,
@@ -180,7 +174,7 @@ def send_feishu_payload(webhook_url: str, payload: dict) -> dict:
 
 def _finish_job(
     session: Session,
-    job: JobRun,
+    execution,
     status: str,
     message: str,
     detail: str = "",
@@ -188,13 +182,16 @@ def _finish_job(
     details: Optional[dict] = None,
     extra_result: Optional[dict] = None,
 ) -> dict:
-    job.status = status
-    job.finished_at = datetime.utcnow()
-    job.processed_count = processed_count
-    job.error_message = None if status == "success" else (detail or message)
-    job.details_json = json.dumps(details, ensure_ascii=False) if details else None
-    session.add(job)
-    session.commit()
+    details_json = json.dumps(details, ensure_ascii=False) if details else None
+    error_message = None if status in {"success", "skipped"} else (detail or message)
+    finish_job_run(
+        session,
+        execution,
+        status=status,
+        processed_count=processed_count,
+        error_message=error_message,
+        details_json=details_json,
+    )
 
     result = {
         "status": status,

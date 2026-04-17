@@ -182,3 +182,53 @@ def test_push_report_to_feishu_uses_template_settings(monkeypatch):
     assert "标题：编辑后的日报标题" in content_lines
     assert "导语：这是日报导语" in content_lines
     assert "• 今日亮点文章" in content_lines
+
+
+def test_push_report_to_feishu_skips_duplicate_scheduler_push(monkeypatch):
+    session = SessionLocal()
+    try:
+        session.add(
+            DailyReport(
+                report_date=date(2026, 4, 17),
+                title="技术日报",
+                intro="日报导语",
+                status="published",
+                html_url="http://127.0.0.1:8000/daily/2026-04-17",
+                source_count=1,
+                article_count=3,
+                feishu_pushed=True,
+            )
+        )
+        session.commit()
+    finally:
+        session.close()
+
+    monkeypatch.setattr(
+        "app.services.notifier.feishu.get_settings",
+        lambda: Settings(
+            feishu_webhook_url="https://open.feishu.cn/fake-webhook",
+            site_base_url="http://127.0.0.1:8000",
+        ),
+    )
+
+    called = {"count": 0}
+
+    def fake_send_feishu_payload(webhook_url, payload):
+        called["count"] += 1
+        return {"code": 0}
+
+    monkeypatch.setattr("app.services.notifier.feishu.send_feishu_payload", fake_send_feishu_payload)
+
+    session = SessionLocal()
+    try:
+        result = push_report_to_feishu(session, date(2026, 4, 17), trigger_type="scheduler")
+        assert result["status"] == "skipped"
+        assert result["message"] == "日报已推送，跳过重复调度"
+
+        latest_job = session.query(JobRun).order_by(JobRun.id.desc()).first()
+        assert latest_job is not None
+        assert latest_job.status == "skipped"
+    finally:
+        session.close()
+
+    assert called["count"] == 0

@@ -9,6 +9,7 @@ from app.core.config import get_settings
 from app.core.database import SessionLocal
 from app.services.article_processing_service import process_pending_articles
 from app.services.crawl_service import crawl_enabled_sources
+from app.services.job_service import JobAlreadyRunningError
 from app.services.notifier.feishu import push_report_to_feishu
 from app.services.report_service import generate_daily_report
 from app.services.system_setting_service import get_setting_map
@@ -175,28 +176,44 @@ class SchedulerRuntime:
     def _run_crawl_job(self) -> None:
         session = SessionLocal()
         try:
-            crawl_enabled_sources(session)
+            crawl_enabled_sources(session, trigger_type="scheduler")
+        except JobAlreadyRunningError as exc:
+            logger.info("Skip scheduled crawl job: %s", exc)
+        except Exception:  # noqa: BLE001
+            logger.exception("Scheduled crawl job failed")
         finally:
             session.close()
 
     def _run_process_job(self) -> None:
         session = SessionLocal()
         try:
-            process_pending_articles(session)
+            process_pending_articles(session, trigger_type="scheduler")
+        except JobAlreadyRunningError as exc:
+            logger.info("Skip scheduled process job: %s", exc)
+        except Exception:  # noqa: BLE001
+            logger.exception("Scheduled process job failed")
         finally:
             session.close()
 
     def _run_report_job(self) -> None:
         session = SessionLocal()
         try:
-            generate_daily_report(session, date.today())
+            generate_daily_report(session, date.today(), trigger_type="scheduler")
+        except JobAlreadyRunningError as exc:
+            logger.info("Skip scheduled report job: %s", exc)
+        except Exception:  # noqa: BLE001
+            logger.exception("Scheduled report job failed")
         finally:
             session.close()
 
     def _run_push_job(self) -> None:
         session = SessionLocal()
         try:
-            push_report_to_feishu(session, date.today())
+            push_report_to_feishu(session, date.today(), trigger_type="scheduler")
+        except JobAlreadyRunningError as exc:
+            logger.info("Skip scheduled push job: %s", exc)
+        except Exception:  # noqa: BLE001
+            logger.exception("Scheduled push job failed")
         finally:
             session.close()
 

@@ -12,8 +12,8 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import get_settings
 from app.db.models.article import Article
-from app.db.models.job_run import JobRun
 from app.db.models.report import DailyReport, DailyReportItem
+from app.services.job_service import finish_job_run, start_job_run
 from app.services.system_setting_service import get_setting_value
 
 
@@ -34,84 +34,76 @@ class ReportEditorItemUpdate:
     display_order: int | None = None
 
 
-def generate_daily_report(session: Session, report_date: Optional[date] = None) -> ReportSummary:
+def generate_daily_report(session: Session, report_date: Optional[date] = None, trigger_type: str = "manual") -> ReportSummary:
     target_date = report_date or date.today()
-    job = JobRun(
-        job_name="generate_report_job",
-        trigger_type="manual",
-        status="running",
-        started_at=datetime.utcnow(),
-        processed_count=0,
-    )
-    session.add(job)
-    session.commit()
-    session.refresh(job)
+    execution = start_job_run(session, "generate_report_job", trigger_type=trigger_type)
+    selected: list[Article] = []
 
-    articles = list(
-        session.scalars(
-            select(Article)
-            .options(joinedload(Article.source), joinedload(Article.content))
-            .where(Article.status.in_(["crawled", "processed"]))
-            .order_by(Article.created_at.desc())
-        ).unique()
-    )
-    selected = [article for article in articles if _article_matches_date(article, target_date) and _is_ready(article)]
-    max_items = _get_max_articles_per_day(session)
-    selected = selected[:max_items]
-
-    report = session.scalar(select(DailyReport).where(DailyReport.report_date == target_date))
-    if report is None:
-        report = DailyReport(
-            report_date=target_date,
-            title=f"{target_date.isoformat()} 技术日报",
-            intro=f"今天共整理 {len(selected)} 篇技术文章。",
-            status="published",
-            source_count=len({article.source_id for article in selected}),
-            article_count=len(selected),
-            feishu_pushed=False,
+    try:
+        articles = list(
+            session.scalars(
+                select(Article)
+                .options(joinedload(Article.source), joinedload(Article.content))
+                .where(Article.status.in_(["crawled", "processed"]))
+                .order_by(Article.created_at.desc())
+            ).unique()
         )
-        session.add(report)
-        session.commit()
-        session.refresh(report)
-    else:
-        for item in list(report.items):
-            session.delete(item)
-        report.title = f"{target_date.isoformat()} 技术日报"
-        report.intro = f"今天共整理 {len(selected)} 篇技术文章。"
-        report.status = "published"
-        report.source_count = len({article.source_id for article in selected})
-        report.article_count = len(selected)
-        session.add(report)
-        session.commit()
-        session.refresh(report)
+        selected = [article for article in articles if _article_matches_date(article, target_date) and _is_ready(article)]
+        max_items = _get_max_articles_per_day(session)
+        selected = selected[:max_items]
 
-    for order, article in enumerate(selected, start=1):
-        section_name = article.content.category if article.content and article.content.category else "技术观察"
-        session.add(
-            DailyReportItem(
-                report_id=report.id,
-                article_id=article.id,
-                display_order=order,
-                section_name=section_name,
+        report = session.scalar(select(DailyReport).where(DailyReport.report_date == target_date))
+        if report is None:
+            report = DailyReport(
+                report_date=target_date,
+                title=f"{target_date.isoformat()} 技术日报",
+                intro=f"今天共整理 {len(selected)} 篇技术文章。",
+                status="published",
+                source_count=len({article.source_id for article in selected}),
+                article_count=len(selected),
+                feishu_pushed=False,
             )
-        )
-    session.commit()
-    session.refresh(report)
+            session.add(report)
+            session.commit()
+            session.refresh(report)
+        else:
+            for item in list(report.items):
+                session.delete(item)
+            report.title = f"{target_date.isoformat()} 技术日报"
+            report.intro = f"今天共整理 {len(selected)} 篇技术文章。"
+            report.status = "published"
+            report.source_count = len({article.source_id for article in selected})
+            report.article_count = len(selected)
+            session.add(report)
+            session.commit()
+            session.refresh(report)
 
-    html_url, html_path = _render_and_save_report(session, report)
-    report.html_url = html_url
-    report.html_path = html_path
-    session.add(report)
-    session.commit()
+        for order, article in enumerate(selected, start=1):
+            section_name = article.content.category if article.content and article.content.category else "技术观察"
+            session.add(
+                DailyReportItem(
+                    report_id=report.id,
+                    article_id=article.id,
+                    display_order=order,
+                    section_name=section_name,
+                )
+            )
+        session.commit()
+        session.refresh(report)
 
-    job.status = "success"
-    job.finished_at = datetime.utcnow()
-    job.processed_count = len(selected)
-    session.add(job)
-    session.commit()
+        html_url, html_path = _render_and_save_report(session, report)
+        report.html_url = html_url
+        report.html_path = html_path
+        session.add(report)
+        session.commit()
+
+        finish_job_run(session, execution, status="success", processed_count=len(selected))
+    except Exception as exc:
+        finish_job_run(session, execution, status="failed", processed_count=len(selected), error_message=str(exc))
+        raise
 
     return ReportSummary(
-        job_id=job.id,
+        job_id=execution.job.id,
         report_id=report.id,
         report_date=target_date,
         article_count=len(selected),

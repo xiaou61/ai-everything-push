@@ -7,12 +7,12 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.db.models.job_run import JobRun
 from app.db.models.source import Source
 from app.services.article_ingest_service import ArticlePayload, create_or_update_article
 from app.services.crawler.content_extractor import extract_text_content
 from app.services.crawler.rss_client import FeedEntry, fetch_feed_entries
 from app.services.crawler.web_client import WebEntry, extract_article_links, fetch_url_text, parse_headers_json
+from app.services.job_service import finish_job_run, start_job_run
 
 
 @dataclass
@@ -25,18 +25,8 @@ class CrawlSummary:
     errors: list[str]
 
 
-def crawl_enabled_sources(session: Session) -> CrawlSummary:
-    job = JobRun(
-        job_name="crawl_sources_job",
-        trigger_type="manual",
-        status="running",
-        started_at=datetime.utcnow(),
-        processed_count=0,
-    )
-    session.add(job)
-    session.commit()
-    session.refresh(job)
-
+def crawl_enabled_sources(session: Session, trigger_type: str = "manual") -> CrawlSummary:
+    execution = start_job_run(session, "crawl_sources_job", trigger_type=trigger_type)
     sources = list(
         session.scalars(
             select(Source)
@@ -50,62 +40,67 @@ def crawl_enabled_sources(session: Session) -> CrawlSummary:
     updated_count = 0
     errors: list[str] = []
 
-    for source in sources:
-        source_processed_count = 0
-        try:
-            entries = _load_entries(source)
-            for entry in entries:
-                rule = source.rules[0] if source.rules else None
-                headers = parse_headers_json(rule.request_headers_json if rule else None)
-                html = fetch_url_text(entry.link, headers=headers) if headers else fetch_url_text(entry.link)
-                content = extract_text_content(
-                    html,
-                    content_selector=rule.content_selector if rule else None,
-                    remove_selectors=rule.remove_selectors if rule else None,
-                )
-                _, created = create_or_update_article(
-                    session,
-                    source,
-                    ArticlePayload(
-                        title=entry.title,
-                        canonical_url=entry.link,
-                        author=entry.author,
-                        published_at=entry.published_at,
-                        language=source.language_hint,
-                        raw_html=html,
-                        clean_content=content,
-                    ),
-                )
-                processed_count += 1
-                source_processed_count += 1
-                if created:
-                    created_count += 1
-                else:
-                    updated_count += 1
-            source.last_crawled_at = datetime.utcnow()
-            source.last_crawl_status = "success"
-            source.consecutive_failures = 0
-            source.last_crawl_error = None
-            source.last_crawl_processed_count = source_processed_count
-            session.add(source)
-        except Exception as exc:  # noqa: BLE001
-            errors.append(f"{source.name}: {exc}")
-            source.last_crawled_at = datetime.utcnow()
-            source.last_crawl_status = "partial_success" if source_processed_count > 0 else "failed"
-            source.consecutive_failures += 1
-            source.last_crawl_error = str(exc)
-            source.last_crawl_processed_count = source_processed_count
-            session.add(source)
+    try:
+        for source in sources:
+            source_processed_count = 0
+            try:
+                entries = _load_entries(source)
+                for entry in entries:
+                    rule = source.rules[0] if source.rules else None
+                    headers = parse_headers_json(rule.request_headers_json if rule else None)
+                    html = fetch_url_text(entry.link, headers=headers) if headers else fetch_url_text(entry.link)
+                    content = extract_text_content(
+                        html,
+                        content_selector=rule.content_selector if rule else None,
+                        remove_selectors=rule.remove_selectors if rule else None,
+                    )
+                    _, created = create_or_update_article(
+                        session,
+                        source,
+                        ArticlePayload(
+                            title=entry.title,
+                            canonical_url=entry.link,
+                            author=entry.author,
+                            published_at=entry.published_at,
+                            language=source.language_hint,
+                            raw_html=html,
+                            clean_content=content,
+                        ),
+                    )
+                    processed_count += 1
+                    source_processed_count += 1
+                    if created:
+                        created_count += 1
+                    else:
+                        updated_count += 1
+                source.last_crawled_at = datetime.utcnow()
+                source.last_crawl_status = "success"
+                source.consecutive_failures = 0
+                source.last_crawl_error = None
+                source.last_crawl_processed_count = source_processed_count
+                session.add(source)
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"{source.name}: {exc}")
+                source.last_crawled_at = datetime.utcnow()
+                source.last_crawl_status = "partial_success" if source_processed_count > 0 else "failed"
+                source.consecutive_failures += 1
+                source.last_crawl_error = str(exc)
+                source.last_crawl_processed_count = source_processed_count
+                session.add(source)
 
-    job.status = "success" if not errors else "partial_success"
-    job.finished_at = datetime.utcnow()
-    job.processed_count = processed_count
-    job.error_message = "\n".join(errors) if errors else None
-    session.add(job)
-    session.commit()
+        finish_job_run(
+            session,
+            execution,
+            status="success" if not errors else "partial_success",
+            processed_count=processed_count,
+            error_message="\n".join(errors) if errors else None,
+        )
+    except Exception as exc:
+        finish_job_run(session, execution, status="failed", processed_count=processed_count, error_message=str(exc))
+        raise
 
     return CrawlSummary(
-        job_id=job.id,
+        job_id=execution.job.id,
         processed_count=processed_count,
         created_count=created_count,
         updated_count=updated_count,

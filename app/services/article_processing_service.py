@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.db.models.article import Article, ArticleContent
 from app.db.models.job_run import JobRun
+from app.services.job_service import finish_job_run, start_job_run
 from app.services.article_service import get_article
 from app.services.ai.language import detect_language
 from app.services.ai.pipeline import classify_content, generate_display_title, summarize_content, translate_content
@@ -32,18 +33,8 @@ class ReprocessSummary:
     message: str
 
 
-def process_pending_articles(session: Session) -> ProcessSummary:
-    job = JobRun(
-        job_name="process_articles_job",
-        trigger_type="manual",
-        status="running",
-        started_at=datetime.utcnow(),
-        processed_count=0,
-    )
-    session.add(job)
-    session.commit()
-    session.refresh(job)
-
+def process_pending_articles(session: Session, trigger_type: str = "manual") -> ProcessSummary:
+    execution = start_job_run(session, "process_articles_job", trigger_type=trigger_type)
     articles = list(
         session.scalars(
             select(Article)
@@ -58,30 +49,35 @@ def process_pending_articles(session: Session) -> ProcessSummary:
     failed_count = 0
     errors: list[str] = []
 
-    for article in articles:
-        content = article.content
-        if content is None:
-            continue
-        if content.ai_status == "success":
-            continue
+    try:
+        for article in articles:
+            content = article.content
+            if content is None:
+                continue
+            if content.ai_status == "success":
+                continue
 
-        success, error_message = _process_article(session, article)
-        processed_count += 1
-        if success:
-            success_count += 1
-        else:
-            failed_count += 1
-            errors.append(f"{article.title}: {error_message}")
+            success, error_message = _process_article(session, article)
+            processed_count += 1
+            if success:
+                success_count += 1
+            else:
+                failed_count += 1
+                errors.append(f"{article.title}: {error_message}")
 
-    job.status = "success" if not errors else "partial_success"
-    job.finished_at = datetime.utcnow()
-    job.processed_count = processed_count
-    job.error_message = "\n".join(errors) if errors else None
-    session.add(job)
-    session.commit()
+        finish_job_run(
+            session,
+            execution,
+            status="success" if not errors else "partial_success",
+            processed_count=processed_count,
+            error_message="\n".join(errors) if errors else None,
+        )
+    except Exception as exc:
+        finish_job_run(session, execution, status="failed", processed_count=processed_count, error_message=str(exc))
+        raise
 
     return ProcessSummary(
-        job_id=job.id,
+        job_id=execution.job.id,
         processed_count=processed_count,
         success_count=success_count,
         failed_count=failed_count,

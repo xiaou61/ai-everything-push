@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.services.job_service import JobAlreadyRunningError
 from app.services.crawler.rss_client import FeedEntry
 
 
@@ -70,3 +71,14 @@ def test_run_crawl_job_updates_source_failure_state(client, monkeypatch):
     assert source["consecutive_failures"] == 1
     assert source["last_crawl_processed_count"] == 0
     assert "源站超时" in source["last_crawl_error"]
+
+
+def test_run_crawl_job_returns_409_when_job_conflicts(client, monkeypatch):
+    monkeypatch.setattr(
+        "app.api.routes.jobs.crawl_enabled_sources",
+        lambda session: (_ for _ in ()).throw(JobAlreadyRunningError("crawl_sources_job 正在运行中，请稍后再试")),
+    )
+
+    response = client.post("/admin/api/jobs/crawl/run")
+    assert response.status_code == 409
+    assert "正在运行中" in response.json()["detail"]

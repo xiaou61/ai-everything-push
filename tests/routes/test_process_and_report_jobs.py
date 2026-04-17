@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import date
 
+from app.services.job_service import JobAlreadyRunningError
+
 
 def test_process_and_report_flow(client, monkeypatch):
     client.post(
@@ -55,3 +57,36 @@ def test_process_and_report_flow(client, monkeypatch):
     assert "技术日报" in public_page.text
     assert "今天看点" in public_page.text
     assert "阅读导航" in public_page.text
+
+
+def test_run_process_job_returns_409_when_job_conflicts(client, monkeypatch):
+    monkeypatch.setattr(
+        "app.api.routes.jobs.process_pending_articles",
+        lambda session: (_ for _ in ()).throw(JobAlreadyRunningError("process_articles_job 正在运行中，请稍后再试")),
+    )
+
+    response = client.post("/admin/api/jobs/process/run")
+    assert response.status_code == 409
+    assert "正在运行中" in response.json()["detail"]
+
+
+def test_run_report_job_returns_409_when_job_conflicts(client, monkeypatch):
+    monkeypatch.setattr(
+        "app.api.routes.jobs.generate_daily_report",
+        lambda session, report_date=None: (_ for _ in ()).throw(JobAlreadyRunningError("generate_report_job 正在运行中，请稍后再试")),
+    )
+
+    response = client.post(f"/admin/api/jobs/report/run?report_date={date.today().isoformat()}")
+    assert response.status_code == 409
+    assert "正在运行中" in response.json()["detail"]
+
+
+def test_run_push_job_returns_409_when_job_conflicts(client, monkeypatch):
+    monkeypatch.setattr(
+        "app.api.routes.jobs.push_report_to_feishu",
+        lambda session, report_date: (_ for _ in ()).throw(JobAlreadyRunningError("push_report_job 正在运行中，请稍后再试")),
+    )
+
+    response = client.post(f"/admin/api/jobs/push/run?report_date={date.today().isoformat()}")
+    assert response.status_code == 409
+    assert "正在运行中" in response.json()["detail"]
