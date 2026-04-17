@@ -669,6 +669,22 @@ pre {
   color: var(--surface-ink-soft);
 }
 
+.template-workspace,
+.template-preview-grid,
+.template-variable-grid {
+  display: flex;
+  gap: 14px;
+}
+
+.template-workspace,
+.template-preview-grid {
+  flex-direction: column;
+}
+
+.template-variable-grid {
+  flex-wrap: wrap;
+}
+
 .editor-item {
   display: flex;
   flex-direction: column;

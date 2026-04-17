@@ -50,6 +50,15 @@ async def save_settings_from_form(request: Request, session: Session = Depends(g
             {"setting_key": "scheduler.report_cron", "setting_value": form.get("scheduler_report_cron", "0 18 * * *"), "description": "日报生成任务 cron"},
             {"setting_key": "scheduler.push_cron", "setting_value": form.get("scheduler_push_cron", "5 18 * * *"), "description": "飞书推送任务 cron"},
             {"setting_key": "report.max_articles_per_day", "setting_value": form.get("report_max_articles_per_day", "30"), "description": "日报每天最多展示文章数"},
+            {"setting_key": "feishu.report_title_template", "setting_value": form.get("feishu_report_title_template", "{{report_title}}"), "description": "飞书日报推送标题模板"},
+            {
+                "setting_key": "feishu.report_body_template",
+                "setting_value": form.get(
+                    "feishu_report_body_template",
+                    "日期：{{report_date}}\n导语：{{report_intro}}\n共整理 {{article_count}} 篇文章，覆盖 {{source_count}} 个来源。\n今日看点：\n{{highlights_bullets}}\n完整阅读：{{report_url}}",
+                ),
+                "description": "飞书日报推送正文模板",
+            },
         ],
     )
     scheduler_runtime.reload()

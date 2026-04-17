@@ -26,6 +26,14 @@ def test_upsert_setting_via_api(client):
     assert value_map["report.max_articles_per_day"] == "12"
 
 
+def test_default_settings_include_feishu_templates(client):
+    response = client.get("/admin/api/settings")
+    assert response.status_code == 200
+    value_map = {item["setting_key"]: item["setting_value"] for item in response.json()}
+    assert "feishu.report_title_template" in value_map
+    assert "feishu.report_body_template" in value_map
+
+
 def test_save_settings_form(client):
     response = client.post(
         "/admin/settings/save",
@@ -37,6 +45,8 @@ def test_save_settings_form(client):
             "scheduler_report_cron": "0 18 * * *",
             "scheduler_push_cron": "5 18 * * *",
             "report_max_articles_per_day": "20",
+            "feishu_report_title_template": "日报：{{report_date}}",
+            "feishu_report_body_template": "链接：{{report_url}}",
         },
         follow_redirects=False,
     )
@@ -46,4 +56,5 @@ def test_save_settings_form(client):
     value_map = {item["setting_key"]: item["setting_value"] for item in settings_response.json()}
     assert value_map["scheduler.enabled"] == "false"
     assert value_map["report.max_articles_per_day"] == "20"
-
+    assert value_map["feishu.report_title_template"] == "日报：{{report_date}}"
+    assert value_map["feishu.report_body_template"] == "链接：{{report_url}}"

@@ -25,12 +25,26 @@ const form = ref({
   schedulerReportCron: '0 18 * * *',
   schedulerPushCron: '5 18 * * *',
   reportMaxArticlesPerDay: '30',
+  feishuReportTitleTemplate: '{{report_title}}',
+  feishuReportBodyTemplate:
+    '日期：{{report_date}}\n导语：{{report_intro}}\n共整理 {{article_count}} 篇文章，覆盖 {{source_count}} 个来源。\n今日看点：\n{{highlights_bullets}}\n完整阅读：{{report_url}}',
 })
 
 const feishuForm = ref({
   title: '技术论坛日报联调消息',
   message: '这是一条来自后台的飞书测试消息，用于确认机器人 webhook 是否可用。',
 })
+
+const feishuTemplateSample = {
+  report_title: '2026-04-17 技术日报',
+  report_date: '2026-04-17',
+  report_intro: '今天筛出 6 篇适合团队内部转发的技术文章。',
+  article_count: '6',
+  source_count: '3',
+  report_url: 'http://127.0.0.1:8000/daily/2026-04-17',
+  highlights_bullets: '• 美团网关演进\n• Claude Code 工程实践\n• AI Agent 任务编排',
+}
+const feishuTemplateVariables = Object.keys(feishuTemplateSample).map((item) => `{{${item}}}`)
 
 const extraSettings = computed(() =>
   settings.value.filter(
@@ -43,9 +57,14 @@ const extraSettings = computed(() =>
         'scheduler.report_cron',
         'scheduler.push_cron',
         'report.max_articles_per_day',
+        'feishu.report_title_template',
+        'feishu.report_body_template',
       ].includes(item.setting_key),
   ),
 )
+
+const feishuPreviewTitle = computed(() => renderTemplatePreview(form.value.feishuReportTitleTemplate, feishuTemplateSample))
+const feishuPreviewBody = computed(() => renderTemplatePreview(form.value.feishuReportBodyTemplate, feishuTemplateSample))
 
 function applySettings(items: SystemSetting[]) {
   settings.value = items
@@ -59,6 +78,10 @@ function applySettings(items: SystemSetting[]) {
     schedulerReportCron: valueMap['scheduler.report_cron'] || '0 18 * * *',
     schedulerPushCron: valueMap['scheduler.push_cron'] || '5 18 * * *',
     reportMaxArticlesPerDay: valueMap['report.max_articles_per_day'] || '30',
+    feishuReportTitleTemplate: valueMap['feishu.report_title_template'] || '{{report_title}}',
+    feishuReportBodyTemplate:
+      valueMap['feishu.report_body_template'] ||
+      '日期：{{report_date}}\n导语：{{report_intro}}\n共整理 {{article_count}} 篇文章，覆盖 {{source_count}} 个来源。\n今日看点：\n{{highlights_bullets}}\n完整阅读：{{report_url}}',
   }
 }
 
@@ -121,6 +144,16 @@ async function saveSettings() {
         setting_value: form.value.reportMaxArticlesPerDay,
         description: '日报每天最多展示文章数',
       },
+      {
+        setting_key: 'feishu.report_title_template',
+        setting_value: form.value.feishuReportTitleTemplate,
+        description: '飞书日报推送标题模板',
+      },
+      {
+        setting_key: 'feishu.report_body_template',
+        setting_value: form.value.feishuReportBodyTemplate,
+        description: '飞书日报推送正文模板',
+      },
     ])
 
     applySettings(saved)
@@ -158,6 +191,14 @@ async function sendFeishuTest() {
   } finally {
     testingFeishu.value = false
   }
+}
+
+function renderTemplatePreview(template: string, values: Record<string, string>) {
+  let rendered = template || ''
+  for (const [key, value] of Object.entries(values)) {
+    rendered = rendered.replaceAll(`{{${key}}}`, value)
+  }
+  return rendered
 }
 
 onMounted(loadSettings)
@@ -287,6 +328,50 @@ onMounted(loadSettings)
           </button>
         </div>
       </form>
+    </PanelCard>
+
+    <PanelCard eyebrow="Feishu Template" title="日报推送模板" accent="copper">
+      <div class="template-workspace">
+        <div class="shell-form__grid">
+          <label class="shell-field shell-field--full">
+            <span>标题模板</span>
+            <input v-model="form.feishuReportTitleTemplate" class="shell-input" type="text" maxlength="500" />
+          </label>
+
+          <label class="shell-field shell-field--full">
+            <span>正文模板</span>
+            <textarea v-model="form.feishuReportBodyTemplate" class="shell-textarea shell-textarea--mono" rows="8" maxlength="5000" />
+          </label>
+        </div>
+
+        <div class="template-variable-grid">
+          <span class="starter-tag" v-for="item in feishuTemplateVariables" :key="item">{{ item }}</span>
+        </div>
+
+        <div class="template-preview-grid">
+          <section class="content-panel">
+            <div class="content-panel__head">
+              <h4>标题预览</h4>
+              <span>样例数据</span>
+            </div>
+            <pre>{{ feishuPreviewTitle }}</pre>
+          </section>
+
+          <section class="content-panel">
+            <div class="content-panel__head">
+              <h4>正文预览</h4>
+              <span>样例数据</span>
+            </div>
+            <pre>{{ feishuPreviewBody }}</pre>
+          </section>
+        </div>
+
+        <div class="form-actions">
+          <button class="shell-button shell-button--secondary" type="button" :disabled="saving" @click="saveSettings">
+            {{ saving ? '保存中...' : '保存模板与系统设置' }}
+          </button>
+        </div>
+      </div>
     </PanelCard>
 
     <PanelCard eyebrow="Advanced" title="额外配置">

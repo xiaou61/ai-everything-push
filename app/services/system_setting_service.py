@@ -43,6 +43,23 @@ DEFAULT_SYSTEM_SETTINGS: list[dict[str, str]] = [
         "setting_value": "30",
         "description": "日报每天最多展示文章数",
     },
+    {
+        "setting_key": "feishu.report_title_template",
+        "setting_value": "{{report_title}}",
+        "description": "飞书日报推送标题模板",
+    },
+    {
+        "setting_key": "feishu.report_body_template",
+        "setting_value": (
+            "日期：{{report_date}}\n"
+            "导语：{{report_intro}}\n"
+            "共整理 {{article_count}} 篇文章，覆盖 {{source_count}} 个来源。\n"
+            "今日看点：\n"
+            "{{highlights_bullets}}\n"
+            "完整阅读：{{report_url}}"
+        ),
+        "description": "飞书日报推送正文模板",
+    },
 ]
 
 

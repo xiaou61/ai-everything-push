@@ -11,6 +11,7 @@ from app.core.config import get_settings
 from app.db.models.job_run import JobRun
 from app.db.models.report import DailyReport
 from app.services.report_service import build_report_sections, get_report_by_date
+from app.services.system_setting_service import get_setting_value
 
 
 def push_report_to_feishu(session: Session, report_date) -> dict:
@@ -44,12 +45,28 @@ def push_report_to_feishu(session: Session, report_date) -> dict:
         if len(highlights) >= 3:
             break
 
-    payload = build_report_payload(
-        title=report.title,
+    template_context = build_report_template_context(
+        report=report,
         highlights=highlights or ["今日暂无重点摘要"],
-        url=report.html_url or f"{settings.site_base_url}/daily/{report.report_date.isoformat()}",
-        article_count=report.article_count,
+        site_base_url=settings.site_base_url,
     )
+    title_template = get_setting_value(session, "feishu.report_title_template", "{{report_title}}") or "{{report_title}}"
+    body_template = get_setting_value(
+        session,
+        "feishu.report_body_template",
+        (
+            "日期：{{report_date}}\n"
+            "导语：{{report_intro}}\n"
+            "共整理 {{article_count}} 篇文章，覆盖 {{source_count}} 个来源。\n"
+            "今日看点：\n"
+            "{{highlights_bullets}}\n"
+            "完整阅读：{{report_url}}"
+        ),
+    ) or ""
+    rendered_title = render_feishu_template(title_template, template_context).strip() or report.title
+    rendered_body = render_feishu_template(body_template, template_context).strip() or template_context["highlights_bullets"]
+
+    payload = build_report_payload(title=rendered_title, body=rendered_body)
     try:
         response_data = send_feishu_payload(settings.feishu_webhook_url, payload)
     except Exception as exc:  # noqa: BLE001
@@ -87,11 +104,32 @@ def send_feishu_test_message(title: str, message: str) -> dict:
     return {"status": "success", "message": "飞书测试消息发送成功", "detail": ""}
 
 
-def build_report_payload(title: str, highlights: list[str], url: str, article_count: int) -> dict:
-    content_block = [[{"tag": "text", "text": f"共整理 {article_count} 篇文章"}]]
-    for line in highlights:
-        content_block.append([{"tag": "text", "text": f"• {line}"}])
-    content_block.append([{"tag": "a", "text": "查看完整日报", "href": url}])
+def build_report_template_context(report: DailyReport, highlights: list[str], site_base_url: str) -> dict[str, str]:
+    report_url = report.html_url or f"{site_base_url}/daily/{report.report_date.isoformat()}"
+    safe_highlights = highlights or ["今日暂无重点摘要"]
+    return {
+        "report_title": report.title or "",
+        "report_date": report.report_date.isoformat(),
+        "report_intro": report.intro or "",
+        "article_count": str(report.article_count or 0),
+        "source_count": str(report.source_count or 0),
+        "report_url": report_url,
+        "highlights_bullets": "\n".join(f"• {item}" for item in safe_highlights),
+    }
+
+
+def render_feishu_template(template: str, context: dict[str, str]) -> str:
+    rendered = template or ""
+    for key, value in context.items():
+        rendered = rendered.replace(f"{{{{{key}}}}}", str(value))
+    return rendered
+
+
+def build_report_payload(title: str, body: str) -> dict:
+    lines = [line.strip() for line in (body or "").splitlines() if line.strip()]
+    content_block = [[{"tag": "text", "text": line}] for line in lines]
+    if not content_block:
+        content_block = [[{"tag": "text", "text": "今日暂无推送内容。"}]]
 
     return {
         "msg_type": "post",
