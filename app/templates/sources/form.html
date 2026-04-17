@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Source Editor</p>
+        <h1>{{ "编辑内容源" if source else "新增内容源" }}</h1>
+        <p class="muted">先把基础信息录进去，规则页里再继续配解析选择器。</p>
+    </div>
+</section>
+
+<section class="panel">
+    <form method="post" action="{{ '/admin/sources/' ~ source.id ~ '/save' if source else '/admin/sources/save' }}" class="form-grid">
+        <label class="form-field">
+            <span>名称</span>
+            <input type="text" name="name" value="{{ source.name if source else '' }}" required>
+        </label>
+
+        <label class="form-field">
+            <span>Slug</span>
+            <input type="text" name="slug" value="{{ source.slug if source else '' }}" required>
+        </label>
+
+        <label class="form-field">
+            <span>类型</span>
+            <select name="source_type">
+                <option value="web" {% if not source or source.source_type == 'web' %}selected{% endif %}>web</option>
+                <option value="rss" {% if source and source.source_type == 'rss' %}selected{% endif %}>rss</option>
+            </select>
+        </label>
+
+        <label class="form-field">
+            <span>站点地址</span>
+            <input type="url" name="site_url" value="{{ source.site_url if source else '' }}" required>
+        </label>
+
+        <label class="form-field">
+            <span>RSS 地址</span>
+            <input type="url" name="feed_url" value="{{ source.feed_url if source and source.feed_url else '' }}">
+        </label>
+
+        <label class="form-field">
+            <span>列表页地址</span>
+            <input type="url" name="list_url" value="{{ source.list_url if source and source.list_url else '' }}">
+        </label>
+
+        <label class="form-field">
+            <span>语言提示</span>
+            <select name="language_hint">
+                <option value="" {% if not source or not source.language_hint %}selected{% endif %}>未指定</option>
+                <option value="zh" {% if source and source.language_hint == 'zh' %}selected{% endif %}>zh</option>
+                <option value="en" {% if source and source.language_hint == 'en' %}selected{% endif %}>en</option>
+            </select>
+        </label>
+
+        <label class="form-field">
+            <span>分类</span>
+            <input type="text" name="category" value="{{ source.category if source and source.category else '' }}">
+        </label>
+
+        <label class="form-field">
+            <span>抓取间隔（分钟）</span>
+            <input type="number" min="5" max="1440" name="crawl_interval_minutes" value="{{ source.crawl_interval_minutes if source else 60 }}">
+        </label>
+
+        <label class="form-field checkbox-field">
+            <span>启用内容源</span>
+            <input type="checkbox" name="enabled" {% if not source or source.enabled %}checked{% endif %}>
+        </label>
+
+        <label class="form-field checkbox-field">
+            <span>参与日报</span>
+            <input type="checkbox" name="include_in_daily" {% if not source or source.include_in_daily %}checked{% endif %}>
+        </label>
+
+        <div class="form-actions">
+            <button type="submit">{{ "保存修改" if source else "创建内容源" }}</button>
+        </div>
+    </form>
+</section>
+{% endblock %}
+

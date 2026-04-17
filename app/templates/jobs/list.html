@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Jobs</p>
+        <h1>任务日志</h1>
+        <p class="muted">查看抓取、处理、日报生成和推送任务的执行结果。</p>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-toolbar">
+        <h2>手动执行</h2>
+    </div>
+    <div class="action-grid">
+        <form method="post" action="/admin/jobs/run/crawl" class="inline-form">
+            <input type="hidden" name="next" value="/admin/jobs">
+            <button type="submit">执行抓取</button>
+        </form>
+        <form method="post" action="/admin/jobs/run/process" class="inline-form">
+            <input type="hidden" name="next" value="/admin/jobs">
+            <button type="submit">处理文章</button>
+        </form>
+        <form method="post" action="/admin/jobs/run/report" class="inline-form">
+            <input type="hidden" name="next" value="/admin/jobs">
+            <button type="submit">生成日报</button>
+        </form>
+        <form method="post" action="/admin/jobs/run/push" class="inline-form">
+            <input type="hidden" name="next" value="/admin/jobs">
+            <button type="submit">推送飞书</button>
+        </form>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>执行记录</h2>
+    {% if jobs %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>任务名</th>
+                    <th>触发方式</th>
+                    <th>状态</th>
+                    <th>开始时间</th>
+                    <th>结束时间</th>
+                    <th>处理数量</th>
+                    <th>错误</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                <tr>
+                    <td>{{ job.job_name }}</td>
+                    <td>{{ job.trigger_type }}</td>
+                    <td>{{ job.status }}</td>
+                    <td>{{ job.started_at }}</td>
+                    <td>{{ job.finished_at or "-" }}</td>
+                    <td>{{ job.processed_count }}</td>
+                    <td>{{ job.error_message or "-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty-state">当前还没有任务执行记录。</p>
+    {% endif %}
+</section>
+{% endblock %}

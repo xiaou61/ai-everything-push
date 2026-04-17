@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Model Control</p>
+        <h1>模型配置</h1>
+        <p class="muted">按任务分别配置翻译、摘要、分类和标题生成模型。</p>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>当前模型配置</h2>
+    {% if configs %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>任务</th>
+                    <th>模型</th>
+                    <th>Provider</th>
+                    <th>默认</th>
+                    <th>启用</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in configs %}
+                <tr>
+                    <td>{{ item.task_type }}</td>
+                    <td>{{ item.model_name }}</td>
+                    <td>{{ item.provider_name }}</td>
+                    <td>{{ "是" if item.is_default else "否" }}</td>
+                    <td>{{ "是" if item.enabled else "否" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty-state">当前还没有模型配置，可以先通过 API 添加。</p>
+    {% endif %}
+    <div class="code-block">
+        <span>POST /admin/api/models</span>
+    </div>
+</section>
+{% endblock %}
+

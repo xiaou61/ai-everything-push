@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">本地管理台</p>
+        <h1>仪表盘</h1>
+        <p class="muted">先把采集、翻译、汇总、发布这条链路在本地跑通。</p>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <article class="stat-card">
+        <span class="stat-label">内容源总数</span>
+        <strong>{{ stats.source_count }}</strong>
+    </article>
+    <article class="stat-card">
+        <span class="stat-label">启用中的内容源</span>
+        <strong>{{ stats.enabled_source_count }}</strong>
+    </article>
+    <article class="stat-card">
+        <span class="stat-label">已抓取文章</span>
+        <strong>{{ stats.article_count }}</strong>
+    </article>
+    <article class="stat-card">
+        <span class="stat-label">日报数量</span>
+        <strong>{{ stats.report_count }}</strong>
+    </article>
+    <article class="stat-card">
+        <span class="stat-label">模型配置</span>
+        <strong>{{ stats.model_count }}</strong>
+    </article>
+    <article class="stat-card">
+        <span class="stat-label">任务日志</span>
+        <strong>{{ stats.job_count }}</strong>
+    </article>
+</section>
+
+<section class="panel">
+    <div class="panel-toolbar">
+        <h2>手动执行</h2>
+        <span class="muted">调试阶段建议先从这里跑任务。</span>
+    </div>
+    <div class="action-grid">
+        <form method="post" action="/admin/jobs/run/crawl" class="inline-form">
+            <input type="hidden" name="next" value="/admin">
+            <button type="submit">执行抓取</button>
+        </form>
+        <form method="post" action="/admin/jobs/run/process" class="inline-form">
+            <input type="hidden" name="next" value="/admin">
+            <button type="submit">处理文章</button>
+        </form>
+        <form method="post" action="/admin/jobs/run/report" class="inline-form">
+            <input type="hidden" name="next" value="/admin">
+            <button type="submit">生成日报</button>
+        </form>
+        <form method="post" action="/admin/jobs/run/push" class="inline-form">
+            <input type="hidden" name="next" value="/admin">
+            <button type="submit">推送飞书</button>
+        </form>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-toolbar">
+        <h2>调度器状态</h2>
+        <a href="/admin/settings">去系统设置</a>
+    </div>
+    <div class="kv-grid">
+        <div class="kv-card">
+            <span class="stat-label">可用</span>
+            <strong>{{ "是" if scheduler_status.available else "否" }}</strong>
+        </div>
+        <div class="kv-card">
+            <span class="stat-label">运行中</span>
+            <strong>{{ "是" if scheduler_status.running else "否" }}</strong>
+        </div>
+        <div class="kv-card">
+            <span class="stat-label">已启用</span>
+            <strong>{{ "是" if scheduler_status.enabled else "否" }}</strong>
+        </div>
+        <div class="kv-card">
+            <span class="stat-label">任务数</span>
+            <strong>{{ scheduler_status.jobs | length }}</strong>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-toolbar">
+        <h2>最近任务</h2>
+        <a href="/admin/jobs">查看全部</a>
+    </div>
+    {% if recent_jobs %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>任务名</th>
+                    <th>状态</th>
+                    <th>开始时间</th>
+                    <th>处理数量</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in recent_jobs %}
+                <tr>
+                    <td>{{ job.job_name }}</td>
+                    <td>{{ job.status }}</td>
+                    <td>{{ job.started_at }}</td>
+                    <td>{{ job.processed_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty-state">当前还没有任务记录。</p>
+    {% endif %}
+</section>
+{% endblock %}

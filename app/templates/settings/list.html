@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">System Control</p>
+        <h1>系统设置</h1>
+        <p class="muted">这里管理自动调度时间、时区和日报条数上限。</p>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-toolbar">
+        <h2>调度器状态</h2>
+        <div class="code-block">
+            <span>POST /admin/api/scheduler/reload</span>
+        </div>
+    </div>
+    <div class="kv-grid">
+        <div class="kv-card">
+            <span class="stat-label">APScheduler 可用</span>
+            <strong>{{ "是" if scheduler_status.available else "否" }}</strong>
+        </div>
+        <div class="kv-card">
+            <span class="stat-label">当前运行中</span>
+            <strong>{{ "是" if scheduler_status.running else "否" }}</strong>
+        </div>
+        <div class="kv-card">
+            <span class="stat-label">配置启用</span>
+            <strong>{{ "是" if scheduler_status.enabled else "否" }}</strong>
+        </div>
+        <div class="kv-card">
+            <span class="stat-label">当前任务数</span>
+            <strong>{{ scheduler_status.jobs | length }}</strong>
+        </div>
+    </div>
+    {% if scheduler_status.message %}
+    <p class="empty-state">{{ scheduler_status.message }}</p>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <h2>系统参数</h2>
+    <form method="post" action="/admin/settings/save" class="form-grid">
+        <label class="form-field">
+            <span>启用调度器</span>
+            <select name="scheduler_enabled">
+                <option value="true" {% if setting_map.get("scheduler.enabled") == "true" %}selected{% endif %}>true</option>
+                <option value="false" {% if setting_map.get("scheduler.enabled") == "false" %}selected{% endif %}>false</option>
+            </select>
+        </label>
+
+        <label class="form-field">
+            <span>时区</span>
+            <input type="text" name="scheduler_timezone" value="{{ setting_map.get('scheduler.timezone', 'Asia/Shanghai') }}">
+        </label>
+
+        <label class="form-field">
+            <span>抓取任务 Cron</span>
+            <input type="text" name="scheduler_crawl_cron" value="{{ setting_map.get('scheduler.crawl_cron', '0 */2 * * *') }}">
+        </label>
+
+        <label class="form-field">
+            <span>处理任务 Cron</span>
+            <input type="text" name="scheduler_process_cron" value="{{ setting_map.get('scheduler.process_cron', '10 */2 * * *') }}">
+        </label>
+
+        <label class="form-field">
+            <span>日报生成 Cron</span>
+            <input type="text" name="scheduler_report_cron" value="{{ setting_map.get('scheduler.report_cron', '0 18 * * *') }}">
+        </label>
+
+        <label class="form-field">
+            <span>飞书推送 Cron</span>
+            <input type="text" name="scheduler_push_cron" value="{{ setting_map.get('scheduler.push_cron', '5 18 * * *') }}">
+        </label>
+
+        <label class="form-field">
+            <span>每天最多文章数</span>
+            <input type="number" min="1" max="200" name="report_max_articles_per_day" value="{{ setting_map.get('report.max_articles_per_day', '30') }}">
+        </label>
+
+        <div class="form-actions">
+            <button type="submit">保存设置并重载调度器</button>
+        </div>
+    </form>
+</section>
+{% endblock %}
