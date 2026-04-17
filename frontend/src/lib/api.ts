@@ -7,6 +7,7 @@ import type {
   ModelConfigPayload,
   Report,
   SchedulerStatus,
+  StarterOverview,
   Source,
   SourcePayload,
   SourceRule,
@@ -128,6 +129,20 @@ export const api = {
   },
   getSchedulerStatus() {
     return request<SchedulerStatus>('/admin/api/scheduler/status')
+  },
+  getStarterOverview() {
+    return request<StarterOverview>('/admin/api/bootstrap/starter')
+  },
+  applyStarterPresets() {
+    return request<{
+      created_sources: string[]
+      created_models: string[]
+      skipped_sources: string[]
+      skipped_models: string[]
+      overview: StarterOverview
+    }>('/admin/api/bootstrap/starter', {
+      method: 'POST',
+    })
   },
   getSettings() {
     return request<SystemSetting[]>('/admin/api/settings')

@@ -14,6 +14,7 @@ const ui = useUiStore()
 const dashboard = ref<DashboardResponse | null>(null)
 const loading = ref(true)
 const actionLoading = ref<string | null>(null)
+const starterLoading = ref(false)
 const reportDate = ref(new Date().toISOString().slice(0, 10))
 
 const statCards = computed(() => {
@@ -80,6 +81,24 @@ async function runJob(kind: 'crawl' | 'process' | 'report' | 'push') {
     ui.notify(error instanceof Error ? error.message : '任务执行失败', 'error')
   } finally {
     actionLoading.value = null
+  }
+}
+
+async function applyStarterPack() {
+  starterLoading.value = true
+
+  try {
+    const result = await api.applyStarterPresets()
+
+    ui.notify(
+      `已注入 ${result.created_sources.length} 个来源、${result.created_models.length} 个模型预设`,
+      'success',
+    )
+    await loadDashboard()
+  } catch (error) {
+    ui.notify(error instanceof Error ? error.message : '注入 starter 预设失败', 'error')
+  } finally {
+    starterLoading.value = false
   }
 }
 
@@ -156,6 +175,57 @@ onMounted(loadDashboard)
           <p class="muted-copy">{{ dashboard.scheduler_status.message || '调度器正在等待下一轮执行。' }}</p>
         </PanelCard>
       </div>
+
+      <PanelCard eyebrow="Starter Pack" title="推荐起步配置">
+        <div class="starter-layout">
+          <div class="starter-column">
+            <h4>推荐来源</h4>
+            <div class="starter-tags">
+              <span
+                v-for="item in dashboard.starter.sources"
+                :key="item.slug"
+                class="starter-tag"
+                :data-ready="item.exists"
+              >
+                {{ item.name }}
+              </span>
+            </div>
+          </div>
+
+          <div class="starter-column">
+            <h4>默认模型</h4>
+            <div class="starter-tags">
+              <span
+                v-for="item in dashboard.starter.models"
+                :key="item.task_type"
+                class="starter-tag"
+                :data-ready="item.exists"
+              >
+                {{ item.task_type }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button
+            class="shell-button shell-button--secondary"
+            :disabled="
+              starterLoading ||
+              (dashboard.starter.missing_source_count === 0 && dashboard.starter.missing_model_count === 0)
+            "
+            @click="applyStarterPack"
+          >
+            {{
+              starterLoading
+                ? '注入中...'
+                : dashboard.starter.missing_source_count === 0 && dashboard.starter.missing_model_count === 0
+                  ? 'Starter 已齐全'
+                  : '一键注入推荐配置'
+            }}
+          </button>
+        </div>
+      </PanelCard>
 
       <PanelCard eyebrow="Recent Runs" title="最近任务">
         <template v-if="dashboard.recent_jobs.length">

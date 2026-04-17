@@ -31,6 +31,7 @@ export interface DashboardResponse {
   stats: DashboardStats
   recent_jobs: JobRun[]
   scheduler_status: SchedulerStatus
+  starter: StarterOverview
 }
 
 export interface Source {
@@ -185,4 +186,39 @@ export interface JobResult {
   errors?: string[]
   message?: string
   [key: string]: unknown
+}
+
+export interface StarterSourcePreset {
+  name: string
+  slug: string
+  source_type: 'rss' | 'web'
+  site_url: string
+  list_url: string | null
+  feed_url: string | null
+  category: string | null
+  language_hint: string | null
+  enabled: boolean
+  include_in_daily: boolean
+  crawl_interval_minutes: number
+  exists: boolean
+}
+
+export interface StarterModelPreset {
+  task_type: 'translation' | 'summary' | 'classification' | 'title'
+  provider_name: string
+  model_name: string
+  base_url: string
+  api_key_env_name: string
+  temperature: string
+  max_tokens: number
+  enabled: boolean
+  is_default: boolean
+  exists: boolean
+}
+
+export interface StarterOverview {
+  sources: StarterSourcePreset[]
+  models: StarterModelPreset[]
+  missing_source_count: number
+  missing_model_count: number
 }

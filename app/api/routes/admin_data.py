@@ -9,6 +9,7 @@ from app.services.dashboard_service import load_dashboard_stats
 from app.services.job_service import list_job_runs, list_recent_job_runs
 from app.services.report_service import list_reports
 from app.services.scheduler.runtime import scheduler_runtime
+from app.services.starter_preset_service import apply_starter_presets, get_starter_overview
 
 router = APIRouter(prefix="/admin/api", tags=["admin-data"])
 
@@ -28,6 +29,7 @@ def get_dashboard_data(session: Session = Depends(get_db_session)) -> dict:
             "jobs": scheduler_status.jobs,
             "message": scheduler_status.message,
         },
+        "starter": get_starter_overview(session),
     }
 
 
@@ -90,6 +92,16 @@ def get_scheduler_status() -> dict:
         "jobs": scheduler_status.jobs,
         "message": scheduler_status.message,
     }
+
+
+@router.get("/bootstrap/starter")
+def get_starter_data(session: Session = Depends(get_db_session)) -> dict:
+    return get_starter_overview(session)
+
+
+@router.post("/bootstrap/starter")
+def post_starter_data(session: Session = Depends(get_db_session)) -> dict:
+    return apply_starter_presets(session)
 
 
 def _serialize_job(item) -> dict:
