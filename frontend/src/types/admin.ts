@@ -252,3 +252,52 @@ export interface StarterOverview {
   missing_source_count: number
   missing_model_count: number
 }
+
+export interface DatabaseTableStat {
+  key: string
+  label: string
+  description: string
+  count: number
+  last_updated_at: string | null
+}
+
+export interface DatabaseBreakdownItem {
+  key: string
+  label: string
+  count: number
+}
+
+export interface DatabaseOverview {
+  connection: {
+    dialect: string
+    driver: string
+    database: string
+    masked_url: string
+  }
+  tables: DatabaseTableStat[]
+  metrics: {
+    total_rows: number
+    article_count: number
+    failed_articles: number
+    report_count: number
+    job_run_count: number
+  }
+  article_status_breakdown: DatabaseBreakdownItem[]
+  source_health_breakdown: DatabaseBreakdownItem[]
+  recent: {
+    latest_report_date: string | null
+    latest_article_created_at: string | null
+    latest_job_started_at: string | null
+  }
+}
+
+export interface DatabaseMaintenanceResult {
+  action: string
+  deleted_count: number
+  message: string
+  keep_days?: number
+  deleted_content_count?: number
+  deleted_report_item_count?: number
+  report_date?: string
+  removed_html?: boolean
+}

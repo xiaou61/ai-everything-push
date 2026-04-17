@@ -95,6 +95,15 @@ const router = createRouter({
           },
         },
         {
+          path: 'database',
+          name: 'database',
+          component: () => import('../views/DatabaseView.vue'),
+          meta: {
+            title: '数据维护',
+            subtitle: '查看数据库概览，并执行日志、失败文章和日报清理。',
+          },
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('../views/SettingsView.vue'),

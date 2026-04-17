@@ -13,6 +13,7 @@ from app.api.routes.admin_actions import router as admin_actions_router
 from app.api.routes.health import router as health_router
 from app.api.routes.jobs import router as jobs_router
 from app.api.routes.models import router as models_router
+from app.api.routes.database_admin import router as database_admin_router
 from app.api.routes.reports import router as reports_router
 from app.api.routes.settings import router as settings_router
 from app.api.routes.source_rules import router as source_rules_router
@@ -87,6 +88,7 @@ def admin_spa_icons():
 
 app.include_router(health_router)
 app.include_router(admin_data_router)
+app.include_router(database_admin_router)
 app.include_router(admin_pages_router)
 app.include_router(admin_actions_router)
 app.include_router(sources_router)

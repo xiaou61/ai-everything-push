@@ -1,6 +1,8 @@
 import type {
   Article,
   DashboardResponse,
+  DatabaseMaintenanceResult,
+  DatabaseOverview,
   FeishuStatus,
   FeishuTestSendPayload,
   FeishuTestSendResult,
@@ -69,6 +71,9 @@ export const api = {
   getDashboard() {
     return request<DashboardResponse>('/admin/api/dashboard')
   },
+  getDatabaseOverview() {
+    return request<DatabaseOverview>('/admin/api/database/overview')
+  },
   getSources() {
     return request<Source[]>('/admin/api/sources')
   },
@@ -130,6 +135,22 @@ export const api = {
   },
   getReports() {
     return request<Report[]>('/admin/api/reports')
+  },
+  cleanupOldJobs(keepDays: number) {
+    return request<DatabaseMaintenanceResult>('/admin/api/database/maintenance/jobs/cleanup', {
+      method: 'POST',
+      body: JSON.stringify({ keep_days: keepDays }),
+    })
+  },
+  cleanupFailedArticles() {
+    return request<DatabaseMaintenanceResult>('/admin/api/database/maintenance/articles/failed/cleanup', {
+      method: 'POST',
+    })
+  },
+  deleteReport(reportId: number) {
+    return request<DatabaseMaintenanceResult>(`/admin/api/database/reports/${reportId}`, {
+      method: 'DELETE',
+    })
   },
   getJobs() {
     return request<JobRun[]>('/admin/api/jobs')

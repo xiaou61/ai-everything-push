@@ -11,7 +11,8 @@ const navItems = [
   { label: '模型', to: '/models', names: ['models'], index: '04' },
   { label: '日报', to: '/reports', names: ['reports'], index: '05' },
   { label: '任务', to: '/jobs', names: ['jobs'], index: '06' },
-  { label: '设置', to: '/settings', names: ['settings'], index: '07' },
+  { label: '数据', to: '/database', names: ['database'], index: '07' },
+  { label: '设置', to: '/settings', names: ['settings'], index: '08' },
 ]
 
 const pageTitle = computed(() => String(route.meta.title || '编辑部控制台'))

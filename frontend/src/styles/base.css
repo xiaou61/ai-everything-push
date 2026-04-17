@@ -321,6 +321,12 @@ pre {
   border-color: rgba(33, 27, 25, 0.08);
 }
 
+.shell-link--danger {
+  background: rgba(187, 77, 62, 0.1);
+  color: #a63a2a;
+  border-color: rgba(187, 77, 62, 0.18);
+}
+
 .shell-form,
 .shell-form__grid {
   display: flex;
@@ -610,6 +616,114 @@ pre {
   color: var(--sage);
 }
 
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(67, 50, 39, 0.1);
+  font-weight: 700;
+}
+
+.panel-grid--metrics-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.info-grid,
+.breakdown-grid,
+.breakdown-column,
+.breakdown-list,
+.maintenance-stack,
+.maintenance-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.info-grid {
+  gap: 12px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(33, 27, 25, 0.05);
+}
+
+.info-item--full code {
+  overflow-wrap: anywhere;
+}
+
+.data-table-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.data-table-card,
+.maintenance-card,
+.breakdown-item {
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(67, 50, 39, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.data-table-card__label,
+.report-card__date {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--copper-deep);
+}
+
+.data-table-card h4,
+.breakdown-column h4,
+.maintenance-card h4 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.data-table-card p,
+.maintenance-card p {
+  margin: 0;
+}
+
+.data-table-card small {
+  color: var(--surface-ink-soft);
+}
+
+.breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+
+.maintenance-card__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.maintenance-card--danger {
+  background: rgba(187, 77, 62, 0.06);
+  border-color: rgba(187, 77, 62, 0.16);
+}
+
 .preview-list__item {
   padding: 16px;
   border-radius: 18px;
@@ -746,6 +860,9 @@ pre {
 
   .panel-grid--metrics,
   .panel-grid--two,
+  .panel-grid--metrics-4,
+  .data-table-grid,
+  .breakdown-grid,
   .article-grid,
   .report-grid {
     grid-template-columns: 1fr;
@@ -777,6 +894,10 @@ pre {
 
   .hero-banner h3 {
     font-size: 24px;
+  }
+
+  .maintenance-card__head {
+    flex-direction: column;
   }
 
   .shell-form__grid {
