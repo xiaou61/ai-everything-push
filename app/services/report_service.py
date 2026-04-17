@@ -132,6 +132,50 @@ def build_report_sections(report: DailyReport) -> dict[str, list[DailyReportItem
     return dict(sections)
 
 
+def build_report_view_data(report: DailyReport) -> dict:
+    sections_map = build_report_sections(report)
+    section_cards: list[dict] = []
+    highlights: list[dict] = []
+    source_names: list[str] = []
+    seen_sources: set[str] = set()
+
+    for section_name, items in sections_map.items():
+        section_cards.append(
+            {
+                "name": section_name,
+                "count": len(items),
+                "entries": items,
+                "anchor": _slugify_section_name(section_name),
+            }
+        )
+
+        for item in items:
+            source_name = item.article.source.name if item.article.source else "未知来源"
+            if source_name not in seen_sources:
+                seen_sources.add(source_name)
+                source_names.append(source_name)
+
+            if len(highlights) >= 3:
+                continue
+
+            summary = item.article.content.summary if item.article.content and item.article.content.summary else "暂无摘要。"
+            highlights.append(
+                {
+                    "title": item.article.content.generated_title if item.article.content and item.article.content.generated_title else item.article.title,
+                    "summary": summary,
+                    "source_name": source_name,
+                    "url": item.article.canonical_url,
+                }
+            )
+
+    return {
+        "sections": section_cards,
+        "highlights": highlights,
+        "source_names": source_names,
+        "hero_intro": report.intro or f"今天共整理 {report.article_count} 篇技术文章，适合快速扫完重点再挑深入阅读。",
+    }
+
+
 def _render_and_save_report(session: Session, report: DailyReport) -> tuple[str, str]:
     report = get_report_by_date(session, report.report_date) or report
     settings = get_settings()
@@ -144,7 +188,12 @@ def _render_and_save_report(session: Session, report: DailyReport) -> tuple[str,
         autoescape=select_autoescape(["html", "xml"]),
     )
     template = env.get_template("reports/public.html")
-    html = template.render(report=report, sections=build_report_sections(report), generated_at=datetime.utcnow())
+    html = template.render(
+        report=report,
+        sections=build_report_sections(report),
+        report_view=build_report_view_data(report),
+        generated_at=datetime.utcnow(),
+    )
     report_path.write_text(html, encoding="utf-8")
 
     return f"{settings.site_base_url}/daily/{report.report_date.isoformat()}", str(report_path).replace("\\", "/")
@@ -165,3 +214,7 @@ def _get_max_articles_per_day(session: Session) -> int:
         return max(1, int(value or "30"))
     except ValueError:
         return 30
+
+
+def _slugify_section_name(value: str) -> str:
+    return "-".join(part for part in value.replace("/", " ").replace("_", " ").split() if part).lower() or "section"

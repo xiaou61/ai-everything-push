@@ -53,4 +53,5 @@ def test_process_and_report_flow(client, monkeypatch):
     public_page = client.get(f"/daily/{date.today().isoformat()}")
     assert public_page.status_code == 200
     assert "技术日报" in public_page.text
-
+    assert "今天看点" in public_page.text
+    assert "阅读导航" in public_page.text

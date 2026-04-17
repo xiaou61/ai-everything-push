@@ -4,128 +4,588 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ report.title }}</title>
+    <meta name="description" content="{{ report_view.hero_intro }}">
     <style>
+        @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap");
+
         :root {
-            --bg: #fcf7ef;
-            --surface: rgba(255, 255, 255, 0.92);
-            --line: rgba(24, 32, 44, 0.12);
-            --text: #16202b;
-            --muted: #5d6977;
-            --accent: #d4682e;
-            --shadow: 0 18px 36px rgba(24, 32, 44, 0.08);
+            --bg: #f6efe6;
+            --paper: rgba(255, 251, 246, 0.92);
+            --paper-strong: #fffaf4;
+            --ink: #1c1714;
+            --muted: #65584f;
+            --line: rgba(79, 58, 43, 0.14);
+            --accent: #bf6733;
+            --accent-soft: rgba(191, 103, 51, 0.10);
+            --sage: #2f6962;
+            --sage-soft: rgba(47, 105, 98, 0.10);
+            --shadow: 0 24px 48px rgba(48, 32, 20, 0.10);
+            --radius-xl: 32px;
+            --radius-lg: 24px;
+            --radius-md: 18px;
         }
 
         * { box-sizing: border-box; }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
             margin: 0;
-            color: var(--text);
-            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--ink);
+            font-family: "Manrope", "PingFang SC", "Microsoft YaHei", sans-serif;
             background:
-                radial-gradient(circle at top right, rgba(212, 104, 46, 0.15), transparent 24%),
-                radial-gradient(circle at left bottom, rgba(24, 115, 110, 0.10), transparent 28%),
+                radial-gradient(circle at top right, rgba(191, 103, 51, 0.18), transparent 22%),
+                radial-gradient(circle at left bottom, rgba(47, 105, 98, 0.12), transparent 28%),
                 var(--bg);
         }
 
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(79, 58, 43, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 58, 43, 0.04) 1px, transparent 1px);
+            background-size: 34px 34px;
+            mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.72), transparent 90%);
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
         .page {
-            max-width: 980px;
+            position: relative;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 40px 20px 64px;
+            padding: 28px 18px 72px;
         }
 
         .hero {
-            margin-bottom: 24px;
-            padding: 28px;
+            position: relative;
+            overflow: hidden;
+            padding: 32px;
+            border-radius: var(--radius-xl);
             border: 1px solid var(--line);
-            border-radius: 28px;
-            background: var(--surface);
+            background:
+                radial-gradient(circle at top left, rgba(47, 105, 98, 0.12), transparent 24%),
+                radial-gradient(circle at right center, rgba(191, 103, 51, 0.18), transparent 28%),
+                linear-gradient(145deg, rgba(255, 252, 247, 0.94), rgba(252, 245, 236, 0.98));
             box-shadow: var(--shadow);
         }
 
-        .hero p {
-            color: var(--muted);
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1.4fr 0.9fr;
+            gap: 24px;
         }
 
-        .meta {
+        .eyebrow {
+            margin: 0 0 12px;
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+
+        h1, h2, h3, h4 {
+            margin: 0;
+            font-family: "Fraunces", "Songti SC", serif;
+            line-height: 1.08;
+            letter-spacing: -0.02em;
+        }
+
+        .hero h1 {
+            max-width: 720px;
+            font-size: 58px;
+            margin-bottom: 18px;
+        }
+
+        .hero-intro {
+            max-width: 680px;
+            margin: 0;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.8;
+        }
+
+        .meta-strip {
             display: flex;
-            gap: 12px;
             flex-wrap: wrap;
-            margin-top: 12px;
-            color: var(--muted);
-            font-size: 14px;
+            gap: 10px;
+            margin-top: 24px;
         }
 
-        .section {
-            margin-top: 20px;
-            padding: 24px;
+        .meta-chip,
+        .source-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 38px;
+            padding: 0 14px;
+            border-radius: 999px;
+            background: rgba(28, 23, 20, 0.05);
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .hero-side {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .hero-note,
+        .hero-card,
+        .section-card,
+        .article-card,
+        .footer-card {
             border: 1px solid var(--line);
-            border-radius: 24px;
-            background: var(--surface);
+            border-radius: var(--radius-lg);
+            background: var(--paper);
             box-shadow: var(--shadow);
         }
 
-        .article-card + .article-card {
-            margin-top: 18px;
-            padding-top: 18px;
-            border-top: 1px solid var(--line);
+        .hero-note {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.64);
         }
 
-        .article-card h3 {
-            margin-bottom: 8px;
-        }
-
-        .article-card p {
-            margin: 0 0 10px;
+        .hero-note p {
+            margin: 8px 0 0;
             color: var(--muted);
             line-height: 1.7;
         }
 
-        .badge {
-            display: inline-flex;
-            margin-bottom: 10px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: rgba(212, 104, 46, 0.10);
-            color: var(--accent);
-            font-size: 12px;
-            font-weight: 700;
+        .hero-card {
+            padding: 22px;
         }
 
-        a {
+        .hero-card__headline {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .hero-card__headline span {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+        }
+
+        .highlight-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .highlight-item {
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: rgba(191, 103, 51, 0.07);
+        }
+
+        .highlight-item h4 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .highlight-item p {
+            margin: 0 0 8px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .highlight-item a {
             color: var(--accent);
-            text-decoration: none;
+            font-weight: 800;
+        }
+
+        .source-band {
+            margin-top: 18px;
+            padding: 18px 22px;
+            border-radius: var(--radius-lg);
+            background: rgba(255, 255, 255, 0.58);
+            border: 1px solid var(--line);
+        }
+
+        .source-band__head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .source-band__head strong {
+            font-size: 14px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .source-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 18px;
+            margin-top: 20px;
+        }
+
+        .rail {
+            position: sticky;
+            top: 18px;
+            align-self: start;
+        }
+
+        .section-card {
+            padding: 20px;
+        }
+
+        .section-card h3 {
+            margin-bottom: 16px;
+            font-size: 26px;
+        }
+
+        .toc-list,
+        .snapshot-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toc-item,
+        .snapshot-item {
+            display: block;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(28, 23, 20, 0.05);
+        }
+
+        .toc-item small,
+        .snapshot-item small {
+            display: block;
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .content {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .section-block {
+            padding: 24px;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--line);
+            background: var(--paper-strong);
+            box-shadow: var(--shadow);
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 16px;
+            margin-bottom: 18px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .section-head h2 {
+            font-size: 34px;
+        }
+
+        .section-head p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .article-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .article-card {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.76);
+        }
+
+        .article-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 12px;
+        }
+
+        .article-index {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .article-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .article-card h3 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .article-summary {
+            margin: 0 0 14px;
+            color: var(--muted);
+            line-height: 1.8;
+        }
+
+        .article-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .article-link {
+            display: inline-flex;
+            align-items: center;
+            min-height: 40px;
+            padding: 0 14px;
+            border-radius: 999px;
+            background: rgba(191, 103, 51, 0.12);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .article-link--ghost {
+            background: var(--sage-soft);
+            color: var(--sage);
+        }
+
+        .footer-card {
+            margin-top: 18px;
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.72);
+        }
+
+        .footer-card p {
+            margin: 8px 0 0;
+            color: var(--muted);
+            line-height: 1.8;
+        }
+
+        @media (max-width: 1040px) {
+            .hero-grid,
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .rail {
+                position: static;
+            }
+
+            .hero h1 {
+                font-size: 46px;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .page {
+                padding: 16px 14px 48px;
+            }
+
+            .hero,
+            .section-block,
+            .section-card,
+            .footer-card {
+                padding: 18px;
+            }
+
+            .hero h1 {
+                font-size: 34px;
+            }
+
+            .hero-intro,
+            .section-head p,
+            .article-summary {
+                font-size: 15px;
+            }
+
+            .section-head {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .article-card h3,
+            .section-head h2 {
+                font-size: 24px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="page">
         <section class="hero">
-            <p>Tech Daily Digest</p>
-            <h1>{{ report.title }}</h1>
-            <p>{{ report.intro or "每日技术内容汇总" }}</p>
-            <div class="meta">
-                <span>日期：{{ report.report_date }}</span>
-                <span>文章数：{{ report.article_count }}</span>
-                <span>来源数：{{ report.source_count }}</span>
+            <div class="hero-grid">
+                <div>
+                    <p class="eyebrow">Tech Daily Brief</p>
+                    <h1>{{ report.title }}</h1>
+                    <p class="hero-intro">{{ report_view.hero_intro }}</p>
+
+                    <div class="meta-strip">
+                        <span class="meta-chip">日期 · {{ report.report_date }}</span>
+                        <span class="meta-chip">文章 · {{ report.article_count }}</span>
+                        <span class="meta-chip">来源 · {{ report.source_count }}</span>
+                        <span class="meta-chip">生成 · {{ generated_at.strftime("%Y-%m-%d %H:%M UTC") if generated_at else "-" }}</span>
+                    </div>
+                </div>
+
+                <div class="hero-side">
+                    <div class="hero-note">
+                        <p class="eyebrow">主编提示</p>
+                        <h3>先扫今天看点，再按分类挑重点深读。</h3>
+                        <p>这份日报面向技术团队快速浏览。中文内容直接保留，英文内容已转成适合中文阅读的摘要表达。</p>
+                    </div>
+
+                    <div class="hero-card">
+                        <div class="hero-card__headline">
+                            <h3>今天看点</h3>
+                            <span>Top {{ report_view.highlights | length }}</span>
+                        </div>
+                        <div class="highlight-list">
+                            {% for item in report_view.highlights %}
+                            <article class="highlight-item">
+                                <h4>{{ item.title }}</h4>
+                                <p>{{ item.summary }}</p>
+                                <a href="{{ item.url }}" target="_blank" rel="noreferrer">{{ item.source_name }} · 打开原文</a>
+                            </article>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="source-band">
+                <div class="source-band__head">
+                    <strong>今日来源</strong>
+                    <span class="meta-chip">{{ report_view.source_names | length }} 个渠道</span>
+                </div>
+                <div class="source-list">
+                    {% for source_name in report_view.source_names %}
+                    <span class="source-chip">{{ source_name }}</span>
+                    {% endfor %}
+                </div>
             </div>
         </section>
 
-        {% for section_name, items in sections.items() %}
-        <section class="section">
-            <h2>{{ section_name }}</h2>
-            {% for item in items %}
-            <article class="article-card">
-                <span class="badge">{{ item.article.source.name if item.article.source else "未知来源" }}</span>
-                <h3>
-                    {{ item.article.content.generated_title if item.article.content and item.article.content.generated_title else item.article.title }}
-                </h3>
-                <p>{{ item.article.content.summary if item.article.content and item.article.content.summary else "暂无摘要。" }}</p>
-                <a href="{{ item.article.canonical_url }}" target="_blank" rel="noreferrer">查看原文</a>
-            </article>
-            {% endfor %}
-        </section>
-        {% endfor %}
+        <div class="layout">
+            <aside class="rail">
+                <section class="section-card">
+                    <p class="eyebrow">Section Guide</p>
+                    <h3>阅读导航</h3>
+                    <div class="toc-list">
+                        {% for section in report_view.sections %}
+                        <a class="toc-item" href="#{{ section.anchor }}">
+                            {{ loop.index }}. {{ section.name }}
+                            <small>{{ section.count }} 篇内容</small>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="section-card" style="margin-top: 18px;">
+                    <p class="eyebrow">Snapshot</p>
+                    <h3>快速概览</h3>
+                    <div class="snapshot-list">
+                        <div class="snapshot-item">日报标题<small>{{ report.title }}</small></div>
+                        <div class="snapshot-item">日报简介<small>{{ report.intro or "每日技术内容汇总" }}</small></div>
+                        <div class="snapshot-item">公开地址<small>{{ report.html_url or "/daily/" ~ report.report_date }}</small></div>
+                    </div>
+                </section>
+            </aside>
+
+            <main class="content">
+                {% for section in report_view.sections %}
+                <section class="section-block" id="{{ section.anchor }}">
+                    <div class="section-head">
+                        <div>
+                            <p class="eyebrow">Section {{ "%02d"|format(loop.index) }}</p>
+                            <h2>{{ section.name }}</h2>
+                        </div>
+                        <p>这一组共 {{ section.count }} 篇内容，适合连续扫读同一主题的趋势与实践。</p>
+                    </div>
+
+                    <div class="article-grid">
+                        {% for item in section.entries %}
+                        <article class="article-card">
+                            <div class="article-top">
+                                <div class="article-index">{{ "%02d"|format(loop.index) }}</div>
+                                <div class="article-meta">
+                                    <span class="source-chip">{{ item.article.source.name if item.article.source else "未知来源" }}</span>
+                                    {% if item.article.language %}
+                                    <span class="meta-chip">{{ item.article.language }}</span>
+                                    {% endif %}
+                                    {% if item.article.published_at %}
+                                    <span class="meta-chip">{{ item.article.published_at.strftime("%Y-%m-%d") }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <h3>
+                                {{ item.article.content.generated_title if item.article.content and item.article.content.generated_title else item.article.title }}
+                            </h3>
+                            <p class="article-summary">
+                                {{ item.article.content.summary if item.article.content and item.article.content.summary else "暂无摘要。" }}
+                            </p>
+
+                            <div class="article-links">
+                                <a class="article-link" href="{{ item.article.canonical_url }}" target="_blank" rel="noreferrer">查看原文</a>
+                                {% if item.article.content and item.article.content.category %}
+                                <span class="article-link article-link--ghost">{{ item.article.content.category }}</span>
+                                {% endif %}
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endfor %}
+            </main>
+        </div>
+
+        <footer class="footer-card">
+            <p class="eyebrow">Editorial Note</p>
+            <h3>这是一份面向团队内部转发也足够体面的技术晨报页面。</h3>
+            <p>页面由聚合抓取、语言处理、摘要生成和日报排版自动产出。你可以直接分享这个公开链接，也可以在后台继续重生成当天版本。</p>
+        </footer>
     </div>
 </body>
 </html>
-

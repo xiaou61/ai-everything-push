@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db_session
 from app.core.templating import templates
-from app.services.report_service import build_report_sections, get_report_by_date, list_reports
+from app.services.report_service import build_report_sections, build_report_view_data, get_report_by_date, list_reports
 
 router = APIRouter(tags=["reports"])
 
@@ -32,6 +32,9 @@ def read_report(report_date: date, request: Request, session: Session = Depends(
     return templates.TemplateResponse(
         request=request,
         name="reports/public.html",
-        context={"report": report, "sections": build_report_sections(report)},
+        context={
+            "report": report,
+            "sections": build_report_sections(report),
+            "report_view": build_report_view_data(report),
+        },
     )
-
