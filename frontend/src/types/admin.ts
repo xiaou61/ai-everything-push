@@ -129,6 +129,28 @@ export interface Article {
   has_content: boolean
 }
 
+export interface ArticleDetail extends Article {
+  author: string | null
+  source_slug: string
+  crawl_error: string | null
+  raw_content: string | null
+  clean_content: string | null
+  translated_content: string | null
+  keywords_json: string | null
+  ai_status: string | null
+  ai_error: string | null
+  processed_at: string | null
+}
+
+export interface ArticleReprocessResult {
+  job_id: number
+  article_id: number
+  status: string
+  ai_status: string
+  message: string
+  article: ArticleDetail
+}
+
 export interface ModelConfig {
   id: number
   task_type: 'translation' | 'summary' | 'classification' | 'title'

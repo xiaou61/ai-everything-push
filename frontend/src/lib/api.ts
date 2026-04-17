@@ -1,5 +1,7 @@
 import type {
   Article,
+  ArticleDetail,
+  ArticleReprocessResult,
   DashboardResponse,
   DatabaseMaintenanceResult,
   DatabaseOverview,
@@ -117,6 +119,14 @@ export const api = {
   },
   getArticles() {
     return request<Article[]>('/admin/api/articles')
+  },
+  getArticle(articleId: number) {
+    return request<ArticleDetail>(`/admin/api/articles/${articleId}`)
+  },
+  reprocessArticle(articleId: number) {
+    return request<ArticleReprocessResult>(`/admin/api/articles/${articleId}/reprocess`, {
+      method: 'POST',
+    })
   },
   getModels() {
     return request<ModelConfig[]>('/admin/api/models')

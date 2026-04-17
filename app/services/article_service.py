@@ -15,3 +15,12 @@ def list_articles(session: Session, limit: int = 100) -> list[Article]:
     )
     return list(session.scalars(statement).unique())
 
+
+def get_article(session: Session, article_id: int) -> Article | None:
+    statement = (
+        select(Article)
+        .options(joinedload(Article.source), joinedload(Article.content))
+        .where(Article.id == article_id)
+        .limit(1)
+    )
+    return session.scalar(statement)

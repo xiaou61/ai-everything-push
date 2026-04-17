@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.routes.admin_data import router as admin_data_router
 from app.api.routes.admin_pages import router as admin_pages_router
 from app.api.routes.admin_actions import router as admin_actions_router
+from app.api.routes.articles import router as articles_router
 from app.api.routes.health import router as health_router
 from app.api.routes.jobs import router as jobs_router
 from app.api.routes.models import router as models_router
@@ -89,6 +90,7 @@ def admin_spa_icons():
 app.include_router(health_router)
 app.include_router(admin_data_router)
 app.include_router(database_admin_router)
+app.include_router(articles_router)
 app.include_router(admin_pages_router)
 app.include_router(admin_actions_router)
 app.include_router(sources_router)

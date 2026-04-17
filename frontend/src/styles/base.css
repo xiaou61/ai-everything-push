@@ -509,6 +509,11 @@ pre {
   background: rgba(255, 255, 255, 0.7);
 }
 
+.article-card.is-active {
+  border-color: rgba(185, 108, 54, 0.28);
+  box-shadow: 0 16px 28px rgba(139, 75, 32, 0.08);
+}
+
 .article-card__header,
 .report-card__header,
 .stack-card__header {
@@ -533,6 +538,109 @@ pre {
   flex-wrap: wrap;
   gap: 10px;
   font-size: 13px;
+}
+
+.article-actions,
+.detail-actions,
+.detail-grid,
+.content-stack,
+.detail-shell {
+  display: flex;
+  gap: 14px;
+}
+
+.article-actions,
+.detail-actions {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.detail-shell,
+.content-stack {
+  flex-direction: column;
+}
+
+.detail-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.detail-kv,
+.message-card,
+.content-panel {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(67, 50, 39, 0.1);
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.detail-kv {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-kv span,
+.content-panel__head span {
+  color: var(--surface-ink-soft);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.message-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.message-card--danger {
+  border-color: rgba(187, 77, 62, 0.18);
+  background: rgba(187, 77, 62, 0.06);
+}
+
+.message-card p {
+  margin: 0;
+  color: var(--surface-ink);
+  line-height: 1.6;
+}
+
+.content-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.content-panel__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.content-panel h4 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.content-panel pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 320px;
+  overflow: auto;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(33, 27, 25, 0.06);
+  color: var(--surface-ink);
 }
 
 .stack-list {
@@ -863,6 +971,7 @@ pre {
   .panel-grid--metrics-4,
   .data-table-grid,
   .breakdown-grid,
+  .detail-grid,
   .article-grid,
   .report-grid {
     grid-template-columns: 1fr;
@@ -896,6 +1005,7 @@ pre {
     font-size: 24px;
   }
 
+  .detail-head,
   .maintenance-card__head {
     flex-direction: column;
   }

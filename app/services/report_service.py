@@ -43,7 +43,7 @@ def generate_daily_report(session: Session, report_date: Optional[date] = None) 
         session.scalars(
             select(Article)
             .options(joinedload(Article.source), joinedload(Article.content))
-            .where(Article.status == "crawled")
+            .where(Article.status.in_(["crawled", "processed"]))
             .order_by(Article.created_at.desc())
         ).unique()
     )
