@@ -8,7 +8,7 @@
 - 大模型摘要、分类、标题生成
 - 按天生成日报页面
 - 定时推送飞书
-- 简单后台管理页面
+- Vue 3 后台管理台
 
 ## 技术栈
 
@@ -27,29 +27,59 @@
 pip install -e ".[dev]"
 ```
 
-2. 复制 `.env.example` 为 `.env`
-3. 配置 `DATABASE_URL`、`OPENAI_API_KEY`、`OPENAI_BASE_URL`
-4. 启动服务：
+2. 安装前端依赖
+
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+3. 复制 `.env.example` 为 `.env`
+4. 配置 `DATABASE_URL`、`AIWANWU_API_KEY`、`FEISHU_WEBHOOK_URL`
+5. 启动后端：
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-5. 访问后台：
+6. 前端开发模式再开一个终端：
 
-```text
-http://127.0.0.1:8000/admin
+```bash
+cd frontend
+npm run dev
 ```
 
-## 当前后台页面
+7. 访问后台：
 
-- `/admin`：仪表盘
-- `/admin/sources`：内容源管理
-- `/admin/sources/{id}/rules`：抓取规则配置
-- `/admin/articles`：文章列表
-- `/admin/models`：模型配置
-- `/admin/reports`：日报管理
-- `/admin/settings`：系统设置和自动调度
+```text
+开发模式：
+http://127.0.0.1:5173/admin/
+
+构建后由 FastAPI 托管：
+http://127.0.0.1:8000/admin/
+```
+
+## 前端构建
+
+```bash
+cd frontend
+npm run build
+```
+
+构建完成后，FastAPI 会直接托管 `frontend/dist`，访问 `/admin/` 即可。
+
+## 当前后台能力
+
+- `/admin/`：Vue 控制台入口
+- `/admin/#/dashboard`：仪表盘
+- `/admin/#/sources`：内容源管理
+- `/admin/#/sources/:id/rules`：抓取规则配置与预览
+- `/admin/#/articles`：文章列表
+- `/admin/#/models`：模型配置
+- `/admin/#/reports`：日报管理
+- `/admin/#/jobs`：任务日志
+- `/admin/#/settings`：系统设置和自动调度
 
 ## 当前任务接口
 
@@ -64,11 +94,9 @@ http://127.0.0.1:8000/admin
 当前已完成：
 
 - 项目骨架
-- 基础数据库模型
-- 后台首页
-- 内容源管理
-- 模型配置管理
-- 内容源抓取规则管理
+- FastAPI + MySQL + SQLAlchemy 后端链路
+- Vue 3 + Vite 独立后台前端
+- 内容源管理、抓取规则预览、模型配置
 - 手动抓取、处理、日报生成、飞书推送链路
-- 系统设置页
+- 文章池、日报管理、任务日志、系统设置页
 - APScheduler 自动调度运行时

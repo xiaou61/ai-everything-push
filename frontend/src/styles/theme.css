@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg: #f4efe7;
+  --bg-elevated: rgba(255, 252, 247, 0.76);
+  --bg-strong: #fffaf3;
+  --surface-ink: #211b19;
+  --surface-ink-soft: #544740;
+  --surface-line: rgba(67, 50, 39, 0.14);
+  --surface-line-strong: rgba(67, 50, 39, 0.28);
+  --copper: #b96c36;
+  --copper-deep: #8b4b20;
+  --copper-soft: rgba(185, 108, 54, 0.12);
+  --sage: #3f6b66;
+  --sage-soft: rgba(63, 107, 102, 0.12);
+  --danger: #bb4d3e;
+  --danger-soft: rgba(187, 77, 62, 0.12);
+  --shadow-soft: 0 24px 48px rgba(58, 38, 24, 0.08);
+  --shadow-card: 0 16px 40px rgba(58, 38, 24, 0.12);
+  --font-body: 'Manrope', sans-serif;
+  --font-display: 'Fraunces', serif;
+  --radius-xl: 28px;
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background:
+    radial-gradient(circle at top left, rgba(191, 128, 74, 0.18), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(63, 107, 102, 0.12), transparent 32%),
+    var(--bg);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  color: var(--surface-ink);
+  background: transparent;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(67, 50, 39, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(67, 50, 39, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.65), transparent 92%);
+}
+
+a,
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+#app {
+  min-height: 100vh;
+}

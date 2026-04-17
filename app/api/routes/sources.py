@@ -15,6 +15,14 @@ def get_sources(session: Session = Depends(get_db_session)):
     return list_sources(session)
 
 
+@router.get("/{source_id}", response_model=SourceRead)
+def get_source_detail(source_id: int, session: Session = Depends(get_db_session)):
+    source = get_source(session, source_id)
+    if source is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="内容源不存在")
+    return source
+
+
 @router.post("", response_model=SourceRead, status_code=status.HTTP_201_CREATED)
 def post_source(payload: SourceCreate, session: Session = Depends(get_db_session)):
     return create_source(session, payload)
@@ -34,4 +42,3 @@ def post_toggle_source(source_id: int, session: Session = Depends(get_db_session
     if source is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="内容源不存在")
     return toggle_source(session, source)
-

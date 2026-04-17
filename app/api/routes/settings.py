@@ -65,6 +65,23 @@ def post_setting(payload: SystemSettingUpsert, session: Session = Depends(get_db
     return record
 
 
+@router.post("/admin/api/settings/batch")
+def post_settings_batch(payload: list[SystemSettingUpsert], session: Session = Depends(get_db_session)) -> list[SystemSettingRead]:
+    records = upsert_many(
+        session,
+        [
+            {
+                "setting_key": item.setting_key,
+                "setting_value": item.setting_value,
+                "description": item.description,
+            }
+            for item in payload
+        ],
+    )
+    scheduler_runtime.reload()
+    return records
+
+
 @router.post("/admin/api/scheduler/reload")
 def reload_scheduler() -> dict:
     status_info = scheduler_runtime.reload()

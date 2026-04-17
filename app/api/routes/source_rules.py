@@ -99,6 +99,36 @@ def post_source_rules(source_id: int, payload: SourceRuleUpsert, session: Sessio
     return upsert_source_rule(session, source, payload)
 
 
+@router.post("/admin/api/sources/{source_id}/rules/preview")
+def post_source_rule_preview(source_id: int, payload: dict, session: Session = Depends(get_db_session)) -> dict:
+    source = get_source(session, source_id)
+    if source is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="内容源不存在")
+
+    preview_mode = str(payload.get("preview_mode", "list"))
+    preview_url = str(payload.get("preview_url", "")).strip() or None
+    rule_payload = SourceRuleUpsert(
+        list_item_selector=str(payload.get("list_item_selector", "")).strip() or None,
+        link_selector=str(payload.get("link_selector", "")).strip() or None,
+        title_selector=str(payload.get("title_selector", "")).strip() or None,
+        published_at_selector=str(payload.get("published_at_selector", "")).strip() or None,
+        author_selector=str(payload.get("author_selector", "")).strip() or None,
+        content_selector=str(payload.get("content_selector", "")).strip() or None,
+        remove_selectors=str(payload.get("remove_selectors", "")).strip() or None,
+        request_headers_json=str(payload.get("request_headers_json", "")).strip() or None,
+    )
+    result = preview_source_rule(source, rule_payload, preview_mode, preview_url)
+    return {
+        "mode": result.mode,
+        "source_type": result.source_type,
+        "request_url": result.request_url,
+        "article_url": result.article_url,
+        "items": result.items or [],
+        "extracted_text": result.extracted_text,
+        "extracted_length": result.extracted_length,
+    }
+
+
 def _build_rule_payload(form: dict[str, str]) -> SourceRuleUpsert:
     return SourceRuleUpsert(
         list_item_selector=form.get("list_item_selector", "").strip() or None,
