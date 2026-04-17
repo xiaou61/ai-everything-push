@@ -177,6 +177,24 @@ export interface SystemSettingPayload {
   description: string
 }
 
+export interface FeishuStatus {
+  configured: boolean
+  masked_webhook: string
+  site_base_url: string
+  message: string
+}
+
+export interface FeishuTestSendPayload {
+  title: string
+  message: string
+}
+
+export interface FeishuTestSendResult {
+  status: string
+  message: string
+  detail: string
+}
+
 export interface JobResult {
   job_id?: number
   job_name?: string

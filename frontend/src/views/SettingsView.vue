@@ -5,15 +5,17 @@ import PanelCard from '../components/ui/PanelCard.vue'
 import StatusBadge from '../components/ui/StatusBadge.vue'
 import { api } from '../lib/api'
 import { useUiStore } from '../stores/ui'
-import type { SchedulerStatus, SystemSetting } from '../types/admin'
+import type { FeishuStatus, SchedulerStatus, SystemSetting } from '../types/admin'
 
 const ui = useUiStore()
 
 const loading = ref(true)
 const saving = ref(false)
 const reloading = ref(false)
+const testingFeishu = ref(false)
 const settings = ref<SystemSetting[]>([])
 const schedulerStatus = ref<SchedulerStatus | null>(null)
+const feishuStatus = ref<FeishuStatus | null>(null)
 
 const form = ref({
   schedulerEnabled: true,
@@ -23,6 +25,11 @@ const form = ref({
   schedulerReportCron: '0 18 * * *',
   schedulerPushCron: '5 18 * * *',
   reportMaxArticlesPerDay: '30',
+})
+
+const feishuForm = ref({
+  title: '技术论坛日报联调消息',
+  message: '这是一条来自后台的飞书测试消息，用于确认机器人 webhook 是否可用。',
 })
 
 const extraSettings = computed(() =>
@@ -59,9 +66,14 @@ async function loadSettings() {
   loading.value = true
 
   try {
-    const [settingList, scheduler] = await Promise.all([api.getSettings(), api.getSchedulerStatus()])
+    const [settingList, scheduler, feishu] = await Promise.all([
+      api.getSettings(),
+      api.getSchedulerStatus(),
+      api.getFeishuStatus(),
+    ])
     applySettings(settingList)
     schedulerStatus.value = scheduler
+    feishuStatus.value = feishu
   } catch (error) {
     ui.notify(error instanceof Error ? error.message : '加载系统设置失败', 'error')
   } finally {
@@ -134,6 +146,20 @@ async function reloadScheduler() {
   }
 }
 
+async function sendFeishuTest() {
+  testingFeishu.value = true
+
+  try {
+    const result = await api.sendFeishuTestMessage(feishuForm.value)
+    ui.notify(result.message, result.status === 'success' ? 'success' : 'error')
+    feishuStatus.value = await api.getFeishuStatus()
+  } catch (error) {
+    ui.notify(error instanceof Error ? error.message : '发送飞书测试消息失败', 'error')
+  } finally {
+    testingFeishu.value = false
+  }
+}
+
 onMounted(loadSettings)
 </script>
 
@@ -170,12 +196,48 @@ onMounted(loadSettings)
         </template>
       </PanelCard>
 
-      <PanelCard eyebrow="Recommended Env" title="部署提醒" accent="copper">
-        <ul class="bullet-list">
-          <li>模型真实密钥建议放在 `.env`，数据库里只保存环境变量名。</li>
-          <li>当前中转站可以统一约定 `AIWANWU_API_KEY` 和 `https://www.aiwanwu.cc/v1`。</li>
-          <li>本地跑通后再接飞书机器人 Webhook，会更容易定位问题。</li>
-        </ul>
+      <PanelCard eyebrow="Feishu" title="飞书推送联调" accent="copper">
+        <template v-if="feishuStatus">
+          <div class="status-list">
+            <div class="status-list__item">
+              <span>Webhook 状态</span>
+              <StatusBadge :label="feishuStatus.configured ? 'enabled' : 'disabled'" />
+            </div>
+            <div class="status-list__item">
+              <span>当前配置</span>
+              <strong>{{ feishuStatus.masked_webhook || '未配置' }}</strong>
+            </div>
+            <div class="status-list__item">
+              <span>日报基址</span>
+              <strong>{{ feishuStatus.site_base_url }}</strong>
+            </div>
+          </div>
+          <p class="muted-copy">{{ feishuStatus.message }}</p>
+
+          <form class="shell-form" @submit.prevent="sendFeishuTest">
+            <div class="shell-form__grid">
+              <label class="shell-field shell-field--full">
+                <span>测试标题</span>
+                <input v-model="feishuForm.title" class="shell-input" type="text" maxlength="100" />
+              </label>
+
+              <label class="shell-field shell-field--full">
+                <span>测试消息</span>
+                <textarea v-model="feishuForm.message" class="shell-textarea" rows="4" maxlength="500" />
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button
+                class="shell-button shell-button--secondary"
+                type="submit"
+                :disabled="testingFeishu || !feishuStatus.configured"
+              >
+                {{ testingFeishu ? '发送中...' : '发送飞书测试消息' }}
+              </button>
+            </div>
+          </form>
+        </template>
       </PanelCard>
     </div>
 
@@ -249,6 +311,14 @@ onMounted(loadSettings)
         </div>
       </template>
       <p v-else class="muted-copy">目前没有额外系统配置项。</p>
+    </PanelCard>
+
+    <PanelCard eyebrow="Recommended Env" title="部署提醒">
+      <ul class="bullet-list">
+        <li>模型真实密钥建议放在 `.env`，数据库里只保存环境变量名。</li>
+        <li>当前中转站可以统一约定 `AIWANWU_API_KEY` 和 `https://www.aiwanwu.cc/v1`。</li>
+        <li>飞书 Webhook 建议继续只放在 `FEISHU_WEBHOOK_URL` 环境变量里，不写进数据库。</li>
+      </ul>
     </PanelCard>
   </div>
 </template>

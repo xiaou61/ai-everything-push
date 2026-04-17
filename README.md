@@ -88,6 +88,15 @@ npm run build
 - `POST /admin/api/jobs/report/run`
 - `POST /admin/api/jobs/push/run`
 - `POST /admin/api/scheduler/reload`
+- `GET /admin/api/integrations/feishu/status`
+- `POST /admin/api/integrations/feishu/test`
+
+## 飞书联调
+
+- 飞书机器人 Webhook 继续通过 `.env` 里的 `FEISHU_WEBHOOK_URL` 配置
+- 后台设置页可以直接查看当前 webhook 是否已配置
+- 后台设置页支持发送一条测试消息，用来确认 webhook 是否可用
+- 真正的日报推送仍然走 `POST /admin/api/jobs/push/run`
 
 ## 当前进度
 

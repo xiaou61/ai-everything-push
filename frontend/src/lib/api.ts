@@ -1,6 +1,9 @@
 import type {
   Article,
   DashboardResponse,
+  FeishuStatus,
+  FeishuTestSendPayload,
+  FeishuTestSendResult,
   JobResult,
   JobRun,
   ModelConfig,
@@ -150,6 +153,15 @@ export const api = {
   },
   getSettings() {
     return request<SystemSetting[]>('/admin/api/settings')
+  },
+  getFeishuStatus() {
+    return request<FeishuStatus>('/admin/api/integrations/feishu/status')
+  },
+  sendFeishuTestMessage(payload: FeishuTestSendPayload) {
+    return request<FeishuTestSendResult>('/admin/api/integrations/feishu/test', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
   },
   saveSettingsBatch(payload: SystemSettingPayload[]) {
     return request<SystemSetting[]>('/admin/api/settings/batch', {

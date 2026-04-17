@@ -9,7 +9,10 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db_session
 from app.core.form_utils import parse_simple_form
 from app.core.templating import templates
+from app.schemas.feishu import FeishuStatusRead, FeishuTestSendRequest, FeishuTestSendResult
 from app.schemas.system_setting import SystemSettingRead, SystemSettingUpsert
+from app.services.notifier.feishu import send_feishu_test_message
+from app.services.notifier.feishu_status_service import get_feishu_status
 from app.services.scheduler.runtime import scheduler_runtime
 from app.services.system_setting_service import DEFAULT_SYSTEM_SETTINGS, get_setting_map, list_system_settings, upsert_many, upsert_setting
 
@@ -92,3 +95,13 @@ def reload_scheduler() -> dict:
         "jobs": status_info.jobs,
         "message": status_info.message,
     }
+
+
+@router.get("/admin/api/integrations/feishu/status", response_model=FeishuStatusRead)
+def get_feishu_integration_status() -> dict:
+    return get_feishu_status()
+
+
+@router.post("/admin/api/integrations/feishu/test", response_model=FeishuTestSendResult)
+def post_feishu_test_message(payload: FeishuTestSendRequest) -> dict:
+    return send_feishu_test_message(payload.title, payload.message)
