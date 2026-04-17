@@ -7,7 +7,7 @@ import StatusBadge from '../components/ui/StatusBadge.vue'
 import { api } from '../lib/api'
 import { createReportLink, formatDate, formatDateTime } from '../lib/format'
 import { useUiStore } from '../stores/ui'
-import type { Report, ReportDetail, ReportEditorItem } from '../types/admin'
+import type { Report, ReportCandidateArticle, ReportDetail, ReportEditorItem } from '../types/admin'
 
 const ui = useUiStore()
 
@@ -18,6 +18,7 @@ const reportDate = ref(new Date().toISOString().slice(0, 10))
 const reports = ref<Report[]>([])
 const selectedReportId = ref<number | null>(null)
 const selectedReport = ref<ReportDetail | null>(null)
+const candidateSearch = ref('')
 const editor = ref({
   title: '',
   intro: '',
@@ -29,6 +30,26 @@ const reportStats = computed(() => ({
   pushed: reports.value.filter((item) => item.feishu_pushed).length,
   published: reports.value.filter((item) => item.status === 'published').length,
 }))
+
+const filteredCandidateArticles = computed(() => {
+  const keyword = candidateSearch.value.trim().toLowerCase()
+  const selectedArticleIds = new Set(editor.value.items.map((item) => item.article_id))
+  const availableCandidates = (selectedReport.value?.candidate_articles || []).filter(
+    (item) => !selectedArticleIds.has(item.article_id),
+  )
+
+  if (!keyword) {
+    return availableCandidates
+  }
+
+  return availableCandidates.filter((item) =>
+    [item.generated_title, item.title, item.source_name, item.category, item.summary]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+      .includes(keyword),
+  )
+})
 
 async function loadReports() {
   loading.value = true
@@ -45,6 +66,7 @@ async function loadReports() {
 function applyEditor(report: ReportDetail) {
   selectedReport.value = report
   selectedReportId.value = report.id
+  candidateSearch.value = ''
   editor.value = {
     title: report.title,
     intro: report.intro || '',
@@ -109,6 +131,28 @@ function removeItem(index: number) {
   editor.value.items = editor.value.items.filter((_, currentIndex) => currentIndex !== index)
 }
 
+function addCandidateArticle(article: ReportCandidateArticle) {
+  if (editor.value.items.some((item) => item.article_id === article.article_id)) {
+    return
+  }
+
+  editor.value.items = [
+    ...editor.value.items,
+    {
+      id: null,
+      article_id: article.article_id,
+      display_order: editor.value.items.length + 1,
+      section_name: article.category || '技术观察',
+      article_title: article.title,
+      generated_title: article.generated_title,
+      summary: article.summary,
+      category: article.category,
+      canonical_url: article.canonical_url,
+      source_name: article.source_name,
+    },
+  ]
+}
+
 async function saveReport() {
   if (!selectedReport.value) {
     return
@@ -121,7 +165,8 @@ async function saveReport() {
       title: editor.value.title,
       intro: editor.value.intro || null,
       items: editor.value.items.map((item, index) => ({
-        id: item.id,
+        id: item.id && item.id > 0 ? item.id : null,
+        article_id: item.article_id,
         display_order: index + 1,
         section_name: item.section_name,
       })),
@@ -266,7 +311,7 @@ onMounted(loadReports)
             </div>
 
             <div class="editor-items">
-              <article v-for="(item, index) in editor.items" :key="item.id" class="editor-item">
+              <article v-for="(item, index) in editor.items" :key="item.id ?? `new-${item.article_id}`" class="editor-item">
                 <div class="editor-item__head">
                   <div>
                     <p class="article-card__source">{{ item.source_name }}</p>
@@ -298,6 +343,70 @@ onMounted(loadReports)
                 </div>
               </article>
             </div>
+
+            <section class="candidate-panel">
+              <div class="candidate-panel__head">
+                <div>
+                  <p class="hero-banner__eyebrow">Candidate Pool</p>
+                  <h4>候选文章补入区</h4>
+                  <p class="muted-copy">这里会展示同一天、已处理完成、但还没放进当前日报的文章。</p>
+                </div>
+
+                <div class="candidate-panel__filters">
+                  <span class="meta-pill">{{ filteredCandidateArticles.length }} / {{ selectedReport.candidate_articles.length }} 可加入</span>
+                  <label class="shell-field candidate-panel__search">
+                    <span>搜索候选文章</span>
+                    <input
+                      v-model="candidateSearch"
+                      class="shell-input"
+                      type="search"
+                      placeholder="按标题、来源、分类筛选"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div v-if="filteredCandidateArticles.length" class="candidate-grid">
+                <article
+                  v-for="candidate in filteredCandidateArticles"
+                  :key="candidate.article_id"
+                  class="candidate-card"
+                >
+                  <div class="candidate-card__head">
+                    <div>
+                      <p class="article-card__source">{{ candidate.source_name }}</p>
+                      <h4>{{ candidate.generated_title || candidate.title }}</h4>
+                    </div>
+
+                    <button
+                      class="shell-button shell-button--secondary"
+                      :disabled="actionLoading !== null"
+                      @click="addCandidateArticle(candidate)"
+                    >
+                      加入日报
+                    </button>
+                  </div>
+
+                  <p class="muted-copy">{{ candidate.summary || '暂无摘要，可先加入日报再继续调整。' }}</p>
+
+                  <div class="article-card__meta">
+                    <span>{{ candidate.category || '技术观察' }}</span>
+                    <span v-if="candidate.published_at">{{ formatDateTime(candidate.published_at) }}</span>
+                    <a :href="candidate.canonical_url" target="_blank" rel="noreferrer" class="shell-link">查看原文</a>
+                  </div>
+                </article>
+              </div>
+
+              <EmptyState
+                v-else
+                title="没有更多候选文章"
+                :description="
+                  candidateSearch
+                    ? '没有匹配当前关键词的候选文章，换个关键词试试。'
+                    : '当前日报已经把候选文章加完了，或者今天还没有更多可用文章。'
+                "
+              />
+            </section>
 
             <div class="form-actions">
               <button class="shell-button" :disabled="actionLoading !== null" @click="saveReport">

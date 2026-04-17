@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 from app.core.database import SessionLocal
 from app.db.models import Article, ArticleContent, DailyReport, DailyReportItem
@@ -15,6 +15,8 @@ def test_get_report_detail_api(client):
     assert payload["title"] == "原始日报标题"
     assert len(payload["items"]) == 2
     assert payload["items"][0]["display_order"] == 1
+    assert len(payload["candidate_articles"]) == 1
+    assert payload["candidate_articles"][0]["generated_title"] == "候选标题 C"
 
 
 def test_update_report_detail_api(client):
@@ -32,6 +34,7 @@ def test_update_report_detail_api(client):
             "items": [
                 {
                     "id": second_item["id"],
+                    "article_id": second_item["article_id"],
                     "display_order": 1,
                     "section_name": "精选速读",
                 }
@@ -59,6 +62,7 @@ def test_update_report_detail_api(client):
 
 def test_publish_report_updates_public_html(client):
     report_id = _build_report_fixture()
+    original = client.get(f"/admin/api/reports/{report_id}").json()
 
     update_response = client.put(
         f"/admin/api/reports/{report_id}",
@@ -67,12 +71,14 @@ def test_publish_report_updates_public_html(client):
             "intro": "新的日报导语",
             "items": [
                 {
-                    "id": client.get(f"/admin/api/reports/{report_id}").json()["items"][0]["id"],
+                    "id": original["items"][0]["id"],
+                    "article_id": original["items"][0]["article_id"],
                     "display_order": 1,
                     "section_name": "编辑后栏目",
                 },
                 {
-                    "id": client.get(f"/admin/api/reports/{report_id}").json()["items"][1]["id"],
+                    "id": original["items"][1]["id"],
+                    "article_id": original["items"][1]["article_id"],
                     "display_order": 2,
                     "section_name": "编辑后栏目",
                 },
@@ -91,6 +97,42 @@ def test_publish_report_updates_public_html(client):
     assert "新的日报标题" in public_page.text
     assert "新的日报导语" in public_page.text
     assert "编辑后栏目" in public_page.text
+
+
+def test_update_report_can_add_candidate_article(client):
+    report_id = _build_report_fixture()
+    original = client.get(f"/admin/api/reports/{report_id}").json()
+    candidate = original["candidate_articles"][0]
+
+    response = client.put(
+        f"/admin/api/reports/{report_id}",
+        json={
+            "title": original["title"],
+            "intro": original["intro"],
+            "items": [
+                {
+                    "id": item["id"],
+                    "article_id": item["article_id"],
+                    "display_order": index + 1,
+                    "section_name": item["section_name"],
+                }
+                for index, item in enumerate(original["items"])
+            ]
+            + [
+                {
+                    "id": None,
+                    "article_id": candidate["article_id"],
+                    "display_order": 3,
+                    "section_name": "人工补充",
+                }
+            ],
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["article_count"] == 3
+    assert any(item["article_id"] == candidate["article_id"] for item in payload["items"])
+    assert all(item["article_id"] != candidate["article_id"] for item in payload["candidate_articles"])
 
 
 def _build_report_fixture() -> int:
@@ -120,6 +162,7 @@ def _build_report_fixture() -> int:
             title="文章 A",
             canonical_url="https://example.com/articles/a",
             language="zh",
+            published_at=datetime(2026, 4, 17, 9, 0, 0),
             url_hash="report-editor-a",
             status="processed",
         )
@@ -128,10 +171,20 @@ def _build_report_fixture() -> int:
             title="文章 B",
             canonical_url="https://example.com/articles/b",
             language="zh",
+            published_at=datetime(2026, 4, 17, 10, 0, 0),
             url_hash="report-editor-b",
             status="processed",
         )
-        session.add_all([article_a, article_b])
+        article_c = Article(
+            source_id=source_id,
+            title="文章 C",
+            canonical_url="https://example.com/articles/c",
+            language="zh",
+            published_at=datetime(2026, 4, 17, 11, 0, 0),
+            url_hash="report-editor-c",
+            status="processed",
+        )
+        session.add_all([article_a, article_b, article_c])
         session.flush()
         session.add_all(
             [
@@ -149,6 +202,14 @@ def _build_report_fixture() -> int:
                     summary="摘要 B",
                     category="架构实践",
                     generated_title="生成标题 B",
+                    ai_status="success",
+                ),
+                ArticleContent(
+                    article_id=article_c.id,
+                    clean_content="正文 C",
+                    summary="摘要 C",
+                    category="技术观察",
+                    generated_title="候选标题 C",
                     ai_status="success",
                 ),
             ]

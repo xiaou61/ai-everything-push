@@ -63,7 +63,9 @@ pre {
 .panel-card__title,
 .empty-state h3,
 .article-card h4,
-.report-card h4 {
+.report-card h4,
+.candidate-panel__head h4,
+.candidate-card h4 {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 700;
@@ -707,6 +709,80 @@ pre {
   align-items: center;
 }
 
+.candidate-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(185, 108, 54, 0.16);
+  background:
+    radial-gradient(circle at top right, rgba(185, 108, 54, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(255, 250, 244, 0.94), rgba(248, 240, 231, 0.78));
+}
+
+.candidate-panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.candidate-panel__head h4,
+.candidate-card h4 {
+  margin: 0;
+}
+
+.candidate-panel__head h4 {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.candidate-panel__filters {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  min-width: min(360px, 100%);
+}
+
+.candidate-panel__search {
+  width: min(360px, 100%);
+}
+
+.candidate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.candidate-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(67, 50, 39, 0.1);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 12px 26px rgba(67, 50, 39, 0.05);
+}
+
+.candidate-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.candidate-card h4 {
+  font-size: 21px;
+  line-height: 1.25;
+}
+
+.candidate-card .shell-button {
+  flex: 0 0 auto;
+}
+
 .stack-list {
   display: flex;
   flex-direction: column;
@@ -1037,6 +1113,7 @@ pre {
   .data-table-grid,
   .breakdown-grid,
   .detail-grid,
+  .candidate-grid,
   .article-grid,
   .report-grid {
     grid-template-columns: 1fr;
@@ -1072,8 +1149,19 @@ pre {
 
   .detail-head,
   .editor-item__head,
+  .candidate-panel__head,
+  .candidate-card__head,
   .maintenance-card__head {
     flex-direction: column;
+  }
+
+  .candidate-panel__filters {
+    align-items: stretch;
+    min-width: 100%;
+  }
+
+  .candidate-panel__search {
+    width: 100%;
   }
 
   .shell-form__grid {

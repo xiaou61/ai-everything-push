@@ -192,7 +192,7 @@ export interface Report {
 }
 
 export interface ReportEditorItem {
-  id: number
+  id: number | null
   article_id: number
   display_order: number
   section_name: string
@@ -204,15 +204,28 @@ export interface ReportEditorItem {
   source_name: string
 }
 
+export interface ReportCandidateArticle {
+  article_id: number
+  title: string
+  generated_title: string | null
+  summary: string | null
+  category: string | null
+  canonical_url: string
+  source_name: string
+  published_at: string | null
+}
+
 export interface ReportDetail extends Report {
   items: ReportEditorItem[]
+  candidate_articles: ReportCandidateArticle[]
 }
 
 export interface ReportUpdatePayload {
   title: string
   intro: string | null
   items: Array<{
-    id: number
+    id: number | null
+    article_id: number
     display_order: number
     section_name: string
   }>

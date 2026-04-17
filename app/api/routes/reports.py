@@ -16,6 +16,7 @@ from app.services.report_service import (
     build_report_view_data,
     get_report,
     get_report_by_date,
+    list_report_candidate_articles,
     list_reports,
     publish_report,
     update_report,
@@ -25,7 +26,8 @@ router = APIRouter(tags=["reports"])
 
 
 class ReportEditorItemPayload(BaseModel):
-    id: int
+    article_id: int
+    id: Optional[int] = None
     display_order: Optional[int] = None
     section_name: Optional[str] = None
 
@@ -51,7 +53,7 @@ def get_report_detail(report_id: int, session: Session = Depends(get_db_session)
     report = get_report(session, report_id)
     if report is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="日报不存在")
-    return _serialize_report_detail(report)
+    return _serialize_report_detail(session, report)
 
 
 @router.put("/admin/api/reports/{report_id}")
@@ -62,14 +64,22 @@ def put_report_detail(report_id: int, payload: ReportUpdatePayload, session: Ses
             report_id,
             payload.title,
             payload.intro,
-            [ReportEditorItemUpdate(id=item.id, display_order=item.display_order, section_name=item.section_name) for item in payload.items],
+            [
+                ReportEditorItemUpdate(
+                    id=item.id,
+                    article_id=item.article_id,
+                    display_order=item.display_order,
+                    section_name=item.section_name,
+                )
+                for item in payload.items
+            ],
         )
     except ValueError as exc:
         detail = str(exc)
         status_code = status.HTTP_404_NOT_FOUND if detail == "日报不存在" else status.HTTP_400_BAD_REQUEST
         raise HTTPException(status_code=status_code, detail=detail) from exc
 
-    return _serialize_report_detail(report)
+    return _serialize_report_detail(session, report)
 
 
 @router.post("/admin/api/reports/{report_id}/publish")
@@ -82,7 +92,7 @@ def post_publish_report(report_id: int, session: Session = Depends(get_db_sessio
     return {
         "message": f"{report.report_date.isoformat()} 的日报已重新发布。",
         "html_url": report.html_url,
-        "report": _serialize_report_detail(report),
+        "report": _serialize_report_detail(session, report),
     }
 
 
@@ -103,7 +113,8 @@ def read_report(report_date: date, request: Request, session: Session = Depends(
     )
 
 
-def _serialize_report_detail(report) -> dict:
+def _serialize_report_detail(session: Session, report) -> dict:
+    candidate_articles = list_report_candidate_articles(session, report)
     return {
         "id": report.id,
         "report_date": report.report_date.isoformat(),
@@ -131,5 +142,18 @@ def _serialize_report_detail(report) -> dict:
                 "source_name": item.article.source.name if item.article.source else "未知来源",
             }
             for item in sorted(report.items, key=lambda current: current.display_order)
+        ],
+        "candidate_articles": [
+            {
+                "article_id": article.id,
+                "title": article.title,
+                "generated_title": article.content.generated_title if article.content else None,
+                "summary": article.content.summary if article.content else None,
+                "category": article.content.category if article.content else None,
+                "canonical_url": article.canonical_url,
+                "source_name": article.source.name if article.source else "未知来源",
+                "published_at": article.published_at.isoformat() if article.published_at else None,
+            }
+            for article in candidate_articles
         ],
     }

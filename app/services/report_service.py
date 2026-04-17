@@ -28,7 +28,8 @@ class ReportSummary:
 
 @dataclass
 class ReportEditorItemUpdate:
-    id: int
+    article_id: int
+    id: Optional[int] = None
     section_name: str | None = None
     display_order: int | None = None
 
@@ -146,19 +147,47 @@ def update_report(
         raise ValueError("日报标题不能为空")
 
     existing_items = {item.id: item for item in report.items}
+    existing_items_by_article = {item.article_id: item for item in report.items}
     seen_item_ids: set[int] = set()
+    desired_article_ids: set[int] = set()
 
     for order, payload in enumerate(items, start=1):
-        item = existing_items.get(payload.id)
-        if item is None:
-            raise ValueError("存在不属于当前日报的条目")
-        if item.id in seen_item_ids:
-            raise ValueError("日报条目不能重复提交")
+        section_name = (payload.section_name or "").strip() or "技术观察"
 
-        seen_item_ids.add(item.id)
-        item.display_order = order
-        item.section_name = (payload.section_name or "").strip() or "技术观察"
-        session.add(item)
+        if payload.id is not None:
+            item = existing_items.get(payload.id)
+            if item is None:
+                raise ValueError("存在不属于当前日报的条目")
+            if payload.article_id != item.article_id:
+                raise ValueError("日报条目与文章不匹配")
+            if item.id in seen_item_ids or item.article_id in desired_article_ids:
+                raise ValueError("日报内文章不能重复")
+
+            seen_item_ids.add(item.id)
+            desired_article_ids.add(item.article_id)
+            item.display_order = order
+            item.section_name = section_name
+            session.add(item)
+            continue
+
+        if payload.article_id in desired_article_ids:
+            raise ValueError("日报内文章不能重复")
+        if payload.article_id in existing_items_by_article:
+            raise ValueError("日报内文章不能重复")
+
+        article = _get_ready_article_for_report(session, payload.article_id, report.report_date)
+        if article is None:
+            raise ValueError("文章不可加入当前日报")
+
+        desired_article_ids.add(article.id)
+        session.add(
+            DailyReportItem(
+                report_id=report.id,
+                article_id=article.id,
+                display_order=order,
+                section_name=section_name,
+            )
+        )
 
     for item in list(report.items):
         if item.id not in seen_item_ids:
@@ -185,6 +214,22 @@ def publish_report(session: Session, report_id: int) -> DailyReport:
     session.add(report)
     session.commit()
     return get_report(session, report_id) or report
+
+
+def list_report_candidate_articles(session: Session, report: DailyReport, limit: int = 30) -> list[Article]:
+    selected_article_ids = {item.article_id for item in report.items}
+    articles = list(
+        session.scalars(
+            select(Article)
+            .options(joinedload(Article.source), joinedload(Article.content))
+            .order_by(Article.published_at.desc(), Article.created_at.desc())
+        ).unique()
+    )
+    return [
+        article
+        for article in articles
+        if article.id not in selected_article_ids and _article_matches_date(article, report.report_date) and _is_ready(article)
+    ][:limit]
 
 
 def build_report_sections(report: DailyReport) -> dict[str, list[DailyReportItem]]:
@@ -300,3 +345,19 @@ def _refresh_report_counts(session: Session, report: DailyReport) -> None:
         )
     else:
         report.source_count = 0
+
+
+def _get_ready_article_for_report(session: Session, article_id: int, report_date: date) -> Optional[Article]:
+    article = session.scalar(
+        select(Article)
+        .options(joinedload(Article.source), joinedload(Article.content))
+        .where(Article.id == article_id)
+        .limit(1)
+    )
+    if article is None:
+        return None
+    if not _article_matches_date(article, report_date):
+        return None
+    if not _is_ready(article):
+        return None
+    return article
