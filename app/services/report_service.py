@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import get_settings
@@ -24,6 +24,13 @@ class ReportSummary:
     report_date: date
     article_count: int
     html_url: str
+
+
+@dataclass
+class ReportEditorItemUpdate:
+    id: int
+    section_name: str | None = None
+    display_order: int | None = None
 
 
 def generate_daily_report(session: Session, report_date: Optional[date] = None) -> ReportSummary:
@@ -115,14 +122,69 @@ def list_reports(session: Session) -> list[DailyReport]:
     return list(session.scalars(select(DailyReport).order_by(DailyReport.report_date.desc())))
 
 
-def get_report_by_date(session: Session, report_date: date) -> Optional[DailyReport]:
-    statement = (
-        select(DailyReport)
-        .options(joinedload(DailyReport.items).joinedload(DailyReportItem.article).joinedload(Article.content), joinedload(DailyReport.items).joinedload(DailyReportItem.article).joinedload(Article.source))
-        .where(DailyReport.report_date == report_date)
-        .limit(1)
-    )
+def get_report(session: Session, report_id: int) -> Optional[DailyReport]:
+    statement = _build_report_detail_query().where(DailyReport.id == report_id).limit(1)
     return session.scalar(statement)
+
+
+def get_report_by_date(session: Session, report_date: date) -> Optional[DailyReport]:
+    statement = _build_report_detail_query().where(DailyReport.report_date == report_date).limit(1)
+    return session.scalar(statement)
+
+
+def update_report(
+    session: Session,
+    report_id: int,
+    title: str,
+    intro: str | None,
+    items: list[ReportEditorItemUpdate],
+) -> DailyReport:
+    report = get_report(session, report_id)
+    if report is None:
+        raise ValueError("日报不存在")
+    if not title.strip():
+        raise ValueError("日报标题不能为空")
+
+    existing_items = {item.id: item for item in report.items}
+    seen_item_ids: set[int] = set()
+
+    for order, payload in enumerate(items, start=1):
+        item = existing_items.get(payload.id)
+        if item is None:
+            raise ValueError("存在不属于当前日报的条目")
+        if item.id in seen_item_ids:
+            raise ValueError("日报条目不能重复提交")
+
+        seen_item_ids.add(item.id)
+        item.display_order = order
+        item.section_name = (payload.section_name or "").strip() or "技术观察"
+        session.add(item)
+
+    for item in list(report.items):
+        if item.id not in seen_item_ids:
+            session.delete(item)
+
+    report.title = title.strip()
+    report.intro = (intro or "").strip() or None
+    session.flush()
+    _refresh_report_counts(session, report)
+    session.commit()
+    return get_report(session, report_id) or report
+
+
+def publish_report(session: Session, report_id: int) -> DailyReport:
+    report = get_report(session, report_id)
+    if report is None:
+        raise ValueError("日报不存在")
+
+    _refresh_report_counts(session, report)
+    report.status = "published"
+    html_url, html_path = _render_and_save_report(session, report)
+    report.html_url = html_url
+    report.html_path = html_path
+    session.add(report)
+    session.commit()
+    return get_report(session, report_id) or report
 
 
 def build_report_sections(report: DailyReport) -> dict[str, list[DailyReportItem]]:
@@ -218,3 +280,23 @@ def _get_max_articles_per_day(session: Session) -> int:
 
 def _slugify_section_name(value: str) -> str:
     return "-".join(part for part in value.replace("/", " ").replace("_", " ").split() if part).lower() or "section"
+
+
+def _build_report_detail_query():
+    return select(DailyReport).options(
+        joinedload(DailyReport.items).joinedload(DailyReportItem.article).joinedload(Article.content),
+        joinedload(DailyReport.items).joinedload(DailyReportItem.article).joinedload(Article.source),
+    )
+
+
+def _refresh_report_counts(session: Session, report: DailyReport) -> None:
+    item_rows = list(session.scalars(select(DailyReportItem).where(DailyReportItem.report_id == report.id)))
+    article_ids = [item.article_id for item in item_rows]
+    report.article_count = len(article_ids)
+
+    if article_ids:
+        report.source_count = (
+            session.scalar(select(func.count(func.distinct(Article.source_id))).where(Article.id.in_(article_ids))) or 0
+        )
+    else:
+        report.source_count = 0

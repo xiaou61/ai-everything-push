@@ -191,6 +191,33 @@ export interface Report {
   updated_at: string
 }
 
+export interface ReportEditorItem {
+  id: number
+  article_id: number
+  display_order: number
+  section_name: string
+  article_title: string
+  generated_title: string | null
+  summary: string | null
+  category: string | null
+  canonical_url: string
+  source_name: string
+}
+
+export interface ReportDetail extends Report {
+  items: ReportEditorItem[]
+}
+
+export interface ReportUpdatePayload {
+  title: string
+  intro: string | null
+  items: Array<{
+    id: number
+    display_order: number
+    section_name: string
+  }>
+}
+
 export interface SystemSetting {
   id: number
   setting_key: string

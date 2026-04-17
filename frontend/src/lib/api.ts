@@ -13,6 +13,8 @@ import type {
   ModelConfig,
   ModelConfigPayload,
   Report,
+  ReportDetail,
+  ReportUpdatePayload,
   SchedulerStatus,
   StarterOverview,
   Source,
@@ -145,6 +147,20 @@ export const api = {
   },
   getReports() {
     return request<Report[]>('/admin/api/reports')
+  },
+  getReport(reportId: number) {
+    return request<ReportDetail>(`/admin/api/reports/${reportId}`)
+  },
+  updateReport(reportId: number, payload: ReportUpdatePayload) {
+    return request<ReportDetail>(`/admin/api/reports/${reportId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+  publishReport(reportId: number) {
+    return request<{ message: string; html_url: string | null; report: ReportDetail }>(`/admin/api/reports/${reportId}/publish`, {
+      method: 'POST',
+    })
   },
   cleanupOldJobs(keepDays: number) {
     return request<DatabaseMaintenanceResult>('/admin/api/database/maintenance/jobs/cleanup', {
