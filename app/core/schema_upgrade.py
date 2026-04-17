@@ -18,10 +18,16 @@ def _upgrade_sources_table(engine: Engine, inspector) -> None:
     statements: list[str] = []
     if "last_crawled_at" not in existing_columns:
         statements.append("ALTER TABLE sources ADD COLUMN last_crawled_at DATETIME NULL")
+    if "last_success_at" not in existing_columns:
+        statements.append("ALTER TABLE sources ADD COLUMN last_success_at DATETIME NULL")
+    if "last_failure_at" not in existing_columns:
+        statements.append("ALTER TABLE sources ADD COLUMN last_failure_at DATETIME NULL")
     if "last_crawl_status" not in existing_columns:
         statements.append("ALTER TABLE sources ADD COLUMN last_crawl_status VARCHAR(32) NULL")
     if "consecutive_failures" not in existing_columns:
         statements.append("ALTER TABLE sources ADD COLUMN consecutive_failures INTEGER NOT NULL DEFAULT 0")
+    if "last_retry_attempts" not in existing_columns:
+        statements.append("ALTER TABLE sources ADD COLUMN last_retry_attempts INTEGER NOT NULL DEFAULT 0")
     if "last_crawl_error" not in existing_columns:
         column_type = "LONGTEXT" if dialect_name == "mysql" else "TEXT"
         statements.append(f"ALTER TABLE sources ADD COLUMN last_crawl_error {column_type} NULL")

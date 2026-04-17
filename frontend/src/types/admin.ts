@@ -7,6 +7,14 @@ export interface DashboardStats {
   job_count: number
 }
 
+export interface SourceHealthSummary {
+  idle: number
+  healthy: number
+  warning: number
+  cooling: number
+  failed: number
+}
+
 export interface SchedulerStatus {
   available: boolean
   running: boolean
@@ -29,6 +37,14 @@ export interface JobRun {
 
 export interface DashboardResponse {
   stats: DashboardStats
+  source_health_summary: SourceHealthSummary
+  source_alerts: {
+    abnormal_count: number
+    cooling_count: number
+    failed_count: number
+    warning_count: number
+    recent_failures: Source[]
+  }
   recent_jobs: JobRun[]
   scheduler_status: SchedulerStatus
   starter: StarterOverview
@@ -48,10 +64,17 @@ export interface Source {
   include_in_daily: boolean
   crawl_interval_minutes: number
   last_crawled_at: string | null
+  last_success_at: string | null
+  last_failure_at: string | null
   last_crawl_status: 'success' | 'failed' | 'partial_success' | null
   consecutive_failures: number
+  last_retry_attempts: number
   last_crawl_error: string | null
   last_crawl_processed_count: number
+  next_retry_at: string | null
+  can_retry_now: boolean
+  health_level: 'idle' | 'healthy' | 'warning' | 'cooling' | 'failed'
+  health_label: string
 }
 
 export interface SourcePayload {

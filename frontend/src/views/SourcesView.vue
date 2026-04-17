@@ -14,41 +14,90 @@ const ui = useUiStore()
 
 const loading = ref(true)
 const search = ref('')
+const healthFilter = ref<'all' | 'healthy' | 'abnormal' | 'cooling'>('all')
 const sources = ref<Source[]>([])
 const togglingId = ref<number | null>(null)
+
+const filterOptions = [
+  { value: 'all', label: '全部来源' },
+  { value: 'healthy', label: '健康' },
+  { value: 'abnormal', label: '异常' },
+  { value: 'cooling', label: '冷却中' },
+] as const
 
 const filteredSources = computed(() => {
   const keyword = search.value.trim().toLowerCase()
 
-  if (!keyword) {
-    return sources.value
-  }
+  return sources.value.filter((item) => {
+    const matchesKeyword =
+      !keyword ||
+      [item.name, item.slug, item.category || '', item.language_hint || '', item.site_url]
+        .join(' ')
+        .toLowerCase()
+        .includes(keyword)
 
-  return sources.value.filter((item) =>
-    [item.name, item.slug, item.category || '', item.language_hint || '', item.site_url]
-      .join(' ')
-      .toLowerCase()
-      .includes(keyword),
-  )
+    if (!matchesKeyword) {
+      return false
+    }
+
+    if (healthFilter.value === 'healthy') {
+      return item.health_level === 'healthy'
+    }
+
+    if (healthFilter.value === 'cooling') {
+      return item.health_level === 'cooling'
+    }
+
+    if (healthFilter.value === 'abnormal') {
+      return ['warning', 'cooling', 'failed'].includes(item.health_level)
+    }
+
+    return true
+  })
 })
 
 const sourceSummary = computed(() => ({
   total: sources.value.length,
   enabled: sources.value.filter((item) => item.enabled).length,
-  included: sources.value.filter((item) => item.include_in_daily).length,
-  unhealthy: sources.value.filter((item) => (item.consecutive_failures || 0) > 0).length,
+  healthy: sources.value.filter((item) => item.health_level === 'healthy').length,
+  abnormal: sources.value.filter((item) => ['warning', 'cooling', 'failed'].includes(item.health_level)).length,
+  cooling: sources.value.filter((item) => item.health_level === 'cooling').length,
 }))
 
-function getHealthLabel(source: Source): string {
-  if (!source.last_crawl_status) {
-    return 'idle'
+function getFilterCount(value: 'all' | 'healthy' | 'abnormal' | 'cooling'): number {
+  if (value === 'all') {
+    return sourceSummary.value.total
   }
 
-  if (source.last_crawl_status === 'success' && source.consecutive_failures === 0) {
-    return 'success'
+  if (value === 'healthy') {
+    return sourceSummary.value.healthy
   }
 
-  return source.last_crawl_status
+  if (value === 'cooling') {
+    return sourceSummary.value.cooling
+  }
+
+  return sourceSummary.value.abnormal
+}
+
+function describeHealth(source: Source): string {
+  if (source.health_level === 'cooling' && source.next_retry_at) {
+    return `冷却至 ${formatDateTime(source.next_retry_at)}`
+  }
+
+  if (source.can_retry_now) {
+    return '已进入重试窗口'
+  }
+
+  if (source.last_retry_attempts > 0) {
+    return `重试阶段 ${source.last_retry_attempts}/3`
+  }
+
+  if (source.consecutive_failures > 0) {
+    return `连续失败 ${source.consecutive_failures} 次`
+  }
+
+  return `最近处理 ${source.last_crawl_processed_count} 条`
 }
 
 async function loadSources() {
@@ -86,6 +135,11 @@ onMounted(loadSources)
       <div>
         <p class="hero-banner__eyebrow">Source Center</p>
         <h3>把论坛、博客和官方工程文章源头收拾干净，后面整条流水线就顺了。</h3>
+        <div class="hero-inline">
+          <span class="meta-pill">健康来源 {{ sourceSummary.healthy }}</span>
+          <span class="meta-pill">异常来源 {{ sourceSummary.abnormal }}</span>
+          <span class="meta-pill">冷却中 {{ sourceSummary.cooling }}</span>
+        </div>
       </div>
       <RouterLink class="shell-button" to="/sources/new">新增内容源</RouterLink>
     </section>
@@ -97,11 +151,11 @@ onMounted(loadSources)
       <PanelCard eyebrow="启用中" :title="String(sourceSummary.enabled)">
         <p class="muted-copy">会被抓取任务扫描的来源。</p>
       </PanelCard>
-      <PanelCard eyebrow="日报收录" :title="String(sourceSummary.included)">
-        <p class="muted-copy">处理后允许进入日报候选池。</p>
+      <PanelCard eyebrow="健康来源" :title="String(sourceSummary.healthy)">
+        <p class="muted-copy">最近抓取稳定、当前没有失败积压的来源。</p>
       </PanelCard>
-      <PanelCard eyebrow="异常来源" :title="String(sourceSummary.unhealthy)">
-        <p class="muted-copy">连续失败大于 0 的来源建议优先排查。</p>
+      <PanelCard eyebrow="异常来源" :title="String(sourceSummary.abnormal)">
+        <p class="muted-copy">待重试、冷却中和失败来源都会在这里汇总。</p>
       </PanelCard>
     </div>
 
@@ -115,16 +169,29 @@ onMounted(loadSources)
 
       <div v-if="loading" class="skeleton-block skeleton-block--table" />
       <template v-else-if="filteredSources.length">
+        <div class="filter-tabs">
+          <button
+            v-for="item in filterOptions"
+            :key="item.value"
+            class="filter-tab"
+            :class="{ 'is-active': healthFilter === item.value }"
+            type="button"
+            @click="healthFilter = item.value"
+          >
+            <span>{{ item.label }}</span>
+            <strong>{{ getFilterCount(item.value) }}</strong>
+          </button>
+        </div>
         <div class="table-scroll">
           <table class="shell-table">
             <thead>
               <tr>
                 <th>名称</th>
-                <th>类型</th>
-                <th>语言</th>
-                <th>分类</th>
+                <th>类型 / 分类</th>
                 <th>抓取健康</th>
-                <th>最近抓取</th>
+                <th>最近成功</th>
+                <th>最近失败</th>
+                <th>下次重试</th>
                 <th>日报</th>
                 <th>状态</th>
                 <th>操作</th>
@@ -138,19 +205,26 @@ onMounted(loadSources)
                     <a :href="item.site_url" target="_blank" rel="noreferrer">{{ item.slug }}</a>
                   </div>
                 </td>
-                <td>{{ item.source_type }}</td>
-                <td>{{ item.language_hint || '-' }}</td>
-                <td>{{ item.category || '-' }}</td>
                 <td>
                   <div class="table-primary">
-                    <StatusBadge :label="getHealthLabel(item)" />
-                    <span class="table-subcopy">
-                      {{ item.consecutive_failures > 0 ? `连续失败 ${item.consecutive_failures} 次` : `最近处理 ${item.last_crawl_processed_count} 条` }}
-                    </span>
+                    <strong>{{ item.source_type.toUpperCase() }}</strong>
+                    <span class="table-subcopy">{{ item.category || '未分类' }}</span>
+                    <span class="table-subcopy">{{ item.language_hint || '未标记语言' }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="table-primary">
+                    <StatusBadge :label="item.health_label" />
+                    <span class="table-subcopy">{{ describeHealth(item) }}</span>
                     <span v-if="item.last_crawl_error" class="table-error">{{ item.last_crawl_error }}</span>
                   </div>
                 </td>
-                <td>{{ formatDateTime(item.last_crawled_at) }}</td>
+                <td>{{ formatDateTime(item.last_success_at) }}</td>
+                <td>{{ formatDateTime(item.last_failure_at) }}</td>
+                <td>
+                  <span v-if="item.can_retry_now" class="table-ready">可立即重试</span>
+                  <span v-else>{{ formatDateTime(item.next_retry_at) }}</span>
+                </td>
                 <td>{{ formatBoolean(item.include_in_daily) }}</td>
                 <td>
                   <StatusBadge :label="item.enabled ? 'enabled' : 'disabled'" />

@@ -41,9 +41,16 @@ class SourceUpdate(BaseModel):
 class SourceRead(SourceBase):
     id: int
     last_crawled_at: Optional[datetime] = None
+    last_success_at: Optional[datetime] = None
+    last_failure_at: Optional[datetime] = None
     last_crawl_status: Optional[str] = None
     consecutive_failures: int = 0
+    last_retry_attempts: int = 0
     last_crawl_error: Optional[str] = None
     last_crawl_processed_count: int = 0
+    next_retry_at: Optional[datetime] = None
+    can_retry_now: bool = False
+    health_level: str = "idle"
+    health_label: str = "未抓取"
 
     model_config = ConfigDict(from_attributes=True)

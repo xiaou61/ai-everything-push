@@ -29,6 +29,7 @@ def run_crawl_job(session: Session = Depends(get_db_session)) -> dict:
         "processed_count": summary.processed_count,
         "created_count": summary.created_count,
         "updated_count": summary.updated_count,
+        "skipped_count": summary.skipped_count,
         "errors": summary.errors,
     }
 

@@ -21,6 +21,13 @@ def test_create_source(client):
     assert data["consecutive_failures"] == 0
     assert data["last_crawl_status"] is None
     assert data["last_crawl_error"] is None
+    assert data["health_level"] == "idle"
+    assert data["health_label"] == "未抓取"
+    assert data["last_success_at"] is None
+    assert data["last_failure_at"] is None
+    assert data["last_retry_attempts"] == 0
+    assert data["next_retry_at"] is None
+    assert data["can_retry_now"] is False
 
 
 def test_toggle_source(client):

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import httpx
+
 from app.services.job_service import JobAlreadyRunningError
 from app.services.crawler.rss_client import FeedEntry
 
@@ -58,7 +60,7 @@ def test_run_crawl_job_updates_source_failure_state(client, monkeypatch):
     )
 
     def raise_fetch(_):
-        raise ValueError("源站超时")
+        raise httpx.TimeoutException("源站超时")
 
     monkeypatch.setattr("app.services.crawl_service.fetch_feed_entries", raise_fetch)
 
@@ -71,6 +73,11 @@ def test_run_crawl_job_updates_source_failure_state(client, monkeypatch):
     assert source["consecutive_failures"] == 1
     assert source["last_crawl_processed_count"] == 0
     assert "源站超时" in source["last_crawl_error"]
+    assert source["health_level"] == "cooling"
+    assert source["last_failure_at"] is not None
+    assert source["last_retry_attempts"] == 1
+    assert source["next_retry_at"] is not None
+    assert source["can_retry_now"] is False
 
 
 def test_run_crawl_job_returns_409_when_job_conflicts(client, monkeypatch):

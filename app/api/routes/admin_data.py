@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db_session
 from app.services.article_service import list_articles
-from app.services.dashboard_service import load_dashboard_stats
+from app.services.dashboard_service import load_dashboard_source_health, load_dashboard_stats
 from app.services.job_service import list_job_runs, list_recent_job_runs
 from app.services.report_service import list_reports
 from app.services.scheduler.runtime import scheduler_runtime
@@ -17,10 +17,13 @@ router = APIRouter(prefix="/admin/api", tags=["admin-data"])
 @router.get("/dashboard")
 def get_dashboard_data(session: Session = Depends(get_db_session)) -> dict:
     stats = load_dashboard_stats(session)
+    source_health = load_dashboard_source_health(session)
     recent_jobs = [_serialize_job(item) for item in list_recent_job_runs(session)]
     scheduler_status = scheduler_runtime.get_status()
     return {
         "stats": stats,
+        "source_health_summary": source_health["source_health_summary"],
+        "source_alerts": source_health["source_alerts"],
         "recent_jobs": recent_jobs,
         "scheduler_status": {
             "available": scheduler_status.available,

@@ -46,6 +46,20 @@ const statCards = computed(() => {
   ]
 })
 
+const healthCards = computed(() => {
+  if (!dashboard.value) {
+    return []
+  }
+
+  return [
+    { key: 'healthy', label: '健康', count: dashboard.value.source_health_summary.healthy, tone: 'success' },
+    { key: 'warning', label: '待重试', count: dashboard.value.source_health_summary.warning, tone: 'warning' },
+    { key: 'cooling', label: '冷却中', count: dashboard.value.source_health_summary.cooling, tone: 'info' },
+    { key: 'failed', label: '失败', count: dashboard.value.source_health_summary.failed, tone: 'danger' },
+    { key: 'idle', label: '未抓取', count: dashboard.value.source_health_summary.idle, tone: 'info' },
+  ]
+})
+
 async function loadDashboard() {
   loading.value = true
 
@@ -63,8 +77,9 @@ async function runJob(kind: 'crawl' | 'process' | 'report' | 'push') {
 
   try {
     if (kind === 'crawl') {
-      await api.runCrawlJob()
-      ui.notify('抓取任务已执行', 'success')
+      const result = await api.runCrawlJob()
+      const skipped = typeof result.skipped_count === 'number' ? result.skipped_count : 0
+      ui.notify(skipped > 0 ? `抓取任务已执行，跳过 ${skipped} 个冷却来源` : '抓取任务已执行', 'success')
     } else if (kind === 'process') {
       await api.runProcessJob()
       ui.notify('处理任务已执行', 'success')
@@ -111,6 +126,11 @@ onMounted(loadDashboard)
       <div>
         <p class="hero-banner__eyebrow">Morning Pulse</p>
         <h3>技术论坛日报已经具备自动运行的骨架，剩下的是把每个环节打磨顺。</h3>
+        <div v-if="dashboard" class="hero-inline">
+          <span class="meta-pill">异常来源 {{ dashboard.source_alerts.abnormal_count }}</span>
+          <span class="meta-pill">冷却中 {{ dashboard.source_alerts.cooling_count }}</span>
+          <span class="meta-pill">已失败 {{ dashboard.source_alerts.failed_count }}</span>
+        </div>
       </div>
       <div class="hero-banner__meta">
         <label class="shell-field">
@@ -136,6 +156,44 @@ onMounted(loadDashboard)
           accent="copper"
         >
           <p class="muted-copy">{{ item.detail }}</p>
+        </PanelCard>
+      </div>
+
+      <div class="panel-grid panel-grid--two">
+        <PanelCard eyebrow="Source Health" title="来源健康雷达" accent="copper">
+          <div class="signal-grid">
+            <article v-for="item in healthCards" :key="item.key" class="signal-card" :data-tone="item.tone">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.count }}</strong>
+            </article>
+          </div>
+          <p class="muted-copy">冷却中的来源会暂时跳过抓取，避免在异常窗口内反复打源站。</p>
+        </PanelCard>
+
+        <PanelCard eyebrow="Alerts" title="异常来源提醒" accent="ink">
+          <template v-if="dashboard.source_alerts.recent_failures.length">
+            <div class="source-alert-list">
+              <article
+                v-for="item in dashboard.source_alerts.recent_failures"
+                :key="item.id"
+                class="source-alert-item"
+              >
+                <div class="source-alert-item__meta">
+                  <strong>{{ item.name }}</strong>
+                  <span>{{ item.category || item.slug }}</span>
+                </div>
+                <StatusBadge :label="item.health_label" />
+                <span class="table-subcopy">失败时间 {{ formatDateTime(item.last_failure_at) }}</span>
+                <span v-if="item.can_retry_now" class="table-ready">已到重试窗口</span>
+                <span v-if="item.last_crawl_error" class="table-error">{{ item.last_crawl_error }}</span>
+              </article>
+            </div>
+          </template>
+          <EmptyState
+            v-else
+            title="来源状态稳定"
+            description="当前没有需要优先处理的异常来源，可以继续关注文章处理与日报编排。"
+          />
         </PanelCard>
       </div>
 

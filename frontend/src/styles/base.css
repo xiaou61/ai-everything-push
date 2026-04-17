@@ -435,6 +435,117 @@ pre {
   overflow-x: auto;
 }
 
+.filter-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(67, 50, 39, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--surface-ink-soft);
+  font-weight: 700;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.filter-tab strong {
+  color: var(--copper-deep);
+}
+
+.filter-tab.is-active {
+  transform: translateY(-1px);
+  border-color: rgba(185, 108, 54, 0.24);
+  box-shadow: 0 12px 24px rgba(139, 75, 32, 0.08);
+}
+
+.signal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.signal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(67, 50, 39, 0.1);
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.signal-card span {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--surface-ink-soft);
+}
+
+.signal-card strong {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.signal-card[data-tone='success'] {
+  border-color: rgba(63, 107, 102, 0.16);
+}
+
+.signal-card[data-tone='warning'] {
+  border-color: rgba(185, 108, 54, 0.18);
+}
+
+.signal-card[data-tone='danger'] {
+  border-color: rgba(187, 77, 62, 0.2);
+}
+
+.source-alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.source-alert-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(67, 50, 39, 0.1);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.source-alert-item__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.source-alert-item__meta span {
+  color: var(--surface-ink-soft);
+  font-size: 13px;
+}
+
+.table-ready {
+  color: var(--sage);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .shell-table {
   width: 100%;
   border-collapse: collapse;
@@ -1113,6 +1224,7 @@ pre {
   .data-table-grid,
   .breakdown-grid,
   .detail-grid,
+  .signal-grid,
   .candidate-grid,
   .article-grid,
   .report-grid {

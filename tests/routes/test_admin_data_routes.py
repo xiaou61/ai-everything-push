@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 
 from app.core.database import SessionLocal
-from app.db.models import Article, ArticleContent, DailyReport, JobRun
+from app.db.models import Article, ArticleContent, DailyReport, JobRun, Source
 
 
 def test_dashboard_data_api(client):
@@ -42,6 +42,46 @@ def test_dashboard_data_api(client):
     assert payload["stats"]["job_count"] == 1
     assert len(payload["recent_jobs"]) == 1
     assert "running" in payload["scheduler_status"]
+    assert payload["source_health_summary"]["idle"] == 1
+    assert payload["source_alerts"]["abnormal_count"] == 0
+
+
+def test_dashboard_data_api_returns_source_alerts(client):
+    source_response = client.post(
+        "/admin/api/sources",
+        json={
+            "name": "失败来源",
+            "slug": "alert-source",
+            "source_type": "rss",
+            "site_url": "https://example.com",
+            "feed_url": "https://example.com/feed.xml",
+        },
+    )
+    source_id = source_response.json()["id"]
+
+    session = SessionLocal()
+    try:
+        source = session.get(Source, source_id)
+        assert source is not None
+        source.last_crawled_at = datetime(2026, 4, 17, 10, 0, 0)
+        source.last_crawl_status = "failed"
+        source.consecutive_failures = 1
+        source.last_failure_at = datetime(2026, 4, 17, 10, 0, 0)
+        source.last_retry_attempts = 1
+        source.last_crawl_error = "请求超时"
+        session.add(source)
+        session.commit()
+    finally:
+        session.close()
+
+    response = client.get("/admin/api/dashboard")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source_health_summary"]["cooling"] == 1
+    assert payload["source_alerts"]["abnormal_count"] == 1
+    assert payload["source_alerts"]["cooling_count"] == 1
+    assert payload["source_alerts"]["recent_failures"][0]["health_level"] == "cooling"
+    assert payload["source_alerts"]["recent_failures"][0]["name"] == "失败来源"
 
 
 def test_admin_collections_api(client):

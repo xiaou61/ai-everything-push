@@ -13,6 +13,11 @@ from app.services.crawler.content_extractor import extract_text_content
 from app.services.crawler.rss_client import FeedEntry, fetch_feed_entries
 from app.services.crawler.web_client import WebEntry, extract_article_links, fetch_url_text, parse_headers_json
 from app.services.job_service import finish_job_run, start_job_run
+from app.services.source_health_service import (
+    apply_source_crawl_failure,
+    apply_source_crawl_success,
+    should_skip_source_crawl,
+)
 
 
 @dataclass
@@ -22,6 +27,7 @@ class CrawlSummary:
     created_count: int
     updated_count: int
     source_count: int
+    skipped_count: int
     errors: list[str]
 
 
@@ -38,10 +44,16 @@ def crawl_enabled_sources(session: Session, trigger_type: str = "manual") -> Cra
     processed_count = 0
     created_count = 0
     updated_count = 0
+    skipped_count = 0
     errors: list[str] = []
 
     try:
         for source in sources:
+            # 冷却中的来源先跳过，避免在短时间内重复打失败源站。
+            if should_skip_source_crawl(source):
+                skipped_count += 1
+                continue
+
             source_processed_count = 0
             try:
                 entries = _load_entries(source)
@@ -73,19 +85,20 @@ def crawl_enabled_sources(session: Session, trigger_type: str = "manual") -> Cra
                         created_count += 1
                     else:
                         updated_count += 1
-                source.last_crawled_at = datetime.utcnow()
-                source.last_crawl_status = "success"
-                source.consecutive_failures = 0
-                source.last_crawl_error = None
-                source.last_crawl_processed_count = source_processed_count
+                apply_source_crawl_success(
+                    source,
+                    processed_count=source_processed_count,
+                    occurred_at=datetime.utcnow(),
+                )
                 session.add(source)
             except Exception as exc:  # noqa: BLE001
                 errors.append(f"{source.name}: {exc}")
-                source.last_crawled_at = datetime.utcnow()
-                source.last_crawl_status = "partial_success" if source_processed_count > 0 else "failed"
-                source.consecutive_failures += 1
-                source.last_crawl_error = str(exc)
-                source.last_crawl_processed_count = source_processed_count
+                apply_source_crawl_failure(
+                    source,
+                    exc,
+                    processed_count=source_processed_count,
+                    occurred_at=datetime.utcnow(),
+                )
                 session.add(source)
 
         finish_job_run(
@@ -105,6 +118,7 @@ def crawl_enabled_sources(session: Session, trigger_type: str = "manual") -> Cra
         created_count=created_count,
         updated_count=updated_count,
         source_count=len(sources),
+        skipped_count=skipped_count,
         errors=errors,
     )
 

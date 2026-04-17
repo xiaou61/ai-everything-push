@@ -25,8 +25,11 @@ class Source(TimestampMixin, Base):
     include_in_daily: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     crawl_interval_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=60, server_default="60")
     last_crawled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_success_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_failure_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     last_crawl_status: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     consecutive_failures: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    last_retry_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     last_crawl_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     last_crawl_processed_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
