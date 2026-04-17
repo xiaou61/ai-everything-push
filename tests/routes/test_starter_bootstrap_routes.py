@@ -19,6 +19,10 @@ def test_apply_starter_presets(client):
     payload = response.json()
     assert "meituan-tech" in payload["created_sources"]
     assert "summary" in payload["created_models"]
+    meituan = next(item for item in payload["overview"]["sources"] if item["slug"] == "meituan-tech")
+    github = next(item for item in payload["overview"]["sources"] if item["slug"] == "github-engineering")
+    assert meituan["source_type"] == "rss"
+    assert github["source_type"] == "rss"
     assert payload["overview"]["missing_source_count"] == 0
     assert payload["overview"]["missing_model_count"] == 0
 

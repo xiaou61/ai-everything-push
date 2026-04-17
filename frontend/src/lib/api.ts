@@ -14,6 +14,7 @@ import type {
   SourceRulePayload,
   SourceRulePreviewPayload,
   SourceRulePreviewResult,
+  SourceRuleTemplateResult,
   SystemSetting,
   SystemSettingPayload,
 } from '../types/admin'
@@ -102,6 +103,9 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     })
+  },
+  getSourceRuleTemplate(sourceId: number) {
+    return request<SourceRuleTemplateResult>(`/admin/api/sources/${sourceId}/rules/template`)
   },
   getArticles() {
     return request<Article[]>('/admin/api/articles')

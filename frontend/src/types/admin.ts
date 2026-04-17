@@ -102,6 +102,13 @@ export interface SourceRulePreviewResult {
   extracted_length: number | null
 }
 
+export interface SourceRuleTemplateResult {
+  available: boolean
+  requires_rule: boolean
+  message: string
+  payload: SourceRulePayload | null
+}
+
 export interface Article {
   id: number
   title: string

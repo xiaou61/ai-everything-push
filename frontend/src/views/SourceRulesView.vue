@@ -7,7 +7,7 @@ import PanelCard from '../components/ui/PanelCard.vue'
 import StatusBadge from '../components/ui/StatusBadge.vue'
 import { api } from '../lib/api'
 import { useUiStore } from '../stores/ui'
-import type { Source, SourceRulePayload, SourceRulePreviewResult } from '../types/admin'
+import type { Source, SourceRulePayload, SourceRulePreviewResult, SourceRuleTemplateResult } from '../types/admin'
 
 const route = useRoute()
 const ui = useUiStore()
@@ -15,9 +15,11 @@ const ui = useUiStore()
 const loading = ref(true)
 const saving = ref(false)
 const previewing = ref<'list' | 'article' | null>(null)
+const applyingTemplate = ref(false)
 const source = ref<Source | null>(null)
 const previewUrl = ref('')
 const preview = ref<SourceRulePreviewResult | null>(null)
+const templateInfo = ref<SourceRuleTemplateResult | null>(null)
 
 const form = ref<SourceRulePayload>({
   list_item_selector: null,
@@ -62,14 +64,16 @@ async function loadData() {
   loading.value = true
 
   try {
-    const [sourceDetail, rule] = await Promise.all([
+    const [sourceDetail, rule, template] = await Promise.all([
       api.getSource(sourceId.value),
       api.getSourceRules(sourceId.value),
+      api.getSourceRuleTemplate(sourceId.value),
     ])
 
     source.value = sourceDetail
     previewUrl.value = sourceDetail.list_url || sourceDetail.site_url
     fillForm(rule)
+    templateInfo.value = template
   } catch (error) {
     ui.notify(error instanceof Error ? error.message : '加载抓取规则失败', 'error')
   } finally {
@@ -108,6 +112,21 @@ async function runPreview(mode: 'list' | 'article') {
   }
 }
 
+async function applyTemplate() {
+  if (!templateInfo.value?.payload) {
+    return
+  }
+
+  applyingTemplate.value = true
+
+  try {
+    fillForm(templateInfo.value.payload)
+    ui.notify('已套用推荐模板，建议先点预览再保存', 'success')
+  } finally {
+    applyingTemplate.value = false
+  }
+}
+
 onMounted(loadData)
 </script>
 
@@ -128,6 +147,19 @@ onMounted(loadData)
       <PanelCard eyebrow="Selectors" title="抓取规则" accent="copper">
         <div v-if="loading" class="skeleton-block skeleton-block--tall" />
         <form v-else class="shell-form" @submit.prevent="saveRules">
+          <div v-if="templateInfo" class="template-callout" :data-muted="!templateInfo.available">
+            <p>{{ templateInfo.message }}</p>
+            <button
+              v-if="templateInfo.available && templateInfo.payload"
+              class="shell-button shell-button--secondary"
+              type="button"
+              :disabled="applyingTemplate"
+              @click="applyTemplate"
+            >
+              {{ applyingTemplate ? '套用中...' : '套用推荐模板' }}
+            </button>
+          </div>
+
           <div class="shell-form__grid">
             <label class="shell-field">
               <span>列表项选择器</span>

@@ -9,9 +9,10 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db_session
 from app.core.form_utils import parse_simple_form
 from app.core.templating import templates
-from app.schemas.source_rule import SourceRuleRead, SourceRuleUpsert
+from app.schemas.source_rule import SourceRuleRead, SourceRuleTemplateRead, SourceRuleUpsert
 from app.services.source_rule_preview_service import preview_source_rule
 from app.services.source_rule_service import get_rule_by_source, upsert_source_rule
+from app.services.source_rule_template_service import get_rule_template_for_source
 from app.services.source_service import get_source
 
 router = APIRouter(tags=["source-rules"])
@@ -127,6 +128,14 @@ def post_source_rule_preview(source_id: int, payload: dict, session: Session = D
         "extracted_text": result.extracted_text,
         "extracted_length": result.extracted_length,
     }
+
+
+@router.get("/admin/api/sources/{source_id}/rules/template", response_model=SourceRuleTemplateRead)
+def get_source_rule_template(source_id: int, session: Session = Depends(get_db_session)):
+    source = get_source(session, source_id)
+    if source is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="内容源不存在")
+    return get_rule_template_for_source(source)
 
 
 def _build_rule_payload(form: dict[str, str]) -> SourceRuleUpsert:

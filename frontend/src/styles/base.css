@@ -538,6 +538,28 @@ pre {
   gap: 14px;
 }
 
+.template-callout {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(185, 108, 54, 0.18);
+  background: rgba(185, 108, 54, 0.08);
+}
+
+.template-callout[data-muted='true'] {
+  border-color: rgba(67, 50, 39, 0.12);
+  background: rgba(33, 27, 25, 0.05);
+}
+
+.template-callout p {
+  margin: 0;
+  color: var(--surface-ink-soft);
+  line-height: 1.6;
+}
+
 .starter-layout {
   flex-wrap: wrap;
 }

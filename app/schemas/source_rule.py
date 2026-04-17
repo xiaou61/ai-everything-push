@@ -26,3 +26,9 @@ class SourceRuleRead(SourceRuleBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class SourceRuleTemplateRead(BaseModel):
+    available: bool
+    requires_rule: bool
+    message: str
+    payload: Optional[SourceRuleUpsert] = None
